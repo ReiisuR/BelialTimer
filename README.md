@@ -1,4 +1,4 @@
-# Belial Timer — UI v1
+# Belial Timer
 
 Protótipo funcional da interface do Belial Timer, com uma sequência de teste curta para validar o timer e as mecânicas.
 
