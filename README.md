@@ -1,102 +1,59 @@
+<div align="center">
+
 # Belial Timer
 
-Protótipo funcional da interface do Belial Timer, com uma sequência de teste curta para validar o timer e as mecânicas.
+### Curta a luta. O timer acompanha as mecânicas para você.
 
-O ponto de entrada atual é `main.py`. O arquivo `ui_v1.py` permanece como lançador compatível com comandos e referências anteriores.
+<img src="./assets/belial_deitada.png" alt="Belial deitada, arte do Belial Timer" width="520">
 
-A aplicação está organizada assim:
+Um timer para ajudar a acompanhar as mecânicas da luta contra Belial, com contagem regressiva, avisos e uma janela compacta para deixar na tela.
 
-```text
-BelialTimer_UI_v1/
-├── main.py
-├── ui_v1.py
-├── app/
-│   ├── main_window.py
-│   ├── alert_scheduler.py
-│   ├── alert_system.py
-│   ├── config_manager.py
-│   ├── events.py
-│   ├── profile_manager.py
-│   ├── timer_engine.py
-│   └── widgets/
-│       ├── background_widget.py
-│       ├── compact_window.py
-│       ├── header_widget.py
-│       ├── mechanic_panel.py
-│       ├── settings_dialog.py
-│       └── timeline_widget.py
-├── assets/
-└── tests/
-```
+</div>
 
-O pacote `app` mantém a janela principal e as responsabilidades de configuração, eventos, timer e alertas. Os componentes visuais reutilizáveis ficam em `app/widgets`. Essa organização separa cálculo e coordenação da pintura, sem redesenhar a interface.
+<p align="center">
+  <img src="https://img.shields.io/badge/feito%20com-Python-blue?logo=python&logoColor=white" alt="Feito com Python">
+  <img src="https://img.shields.io/badge/interface-PySide6-41CD52?logo=qt&logoColor=white" alt="Interface PySide6">
+  <img src="https://img.shields.io/badge/status-em%20desenvolvimento-orange" alt="Em desenvolvimento">
+</p>
 
-`app/main_window.py` monta e coordena a aplicação:
+---
 
-- timer aguardando início manual pelo botão `INICIAR`;
-- seleção entre sequência de teste e sequência real do Belial;
-- alertas sonoros e visuais;
-- timeline com símbolos próprios e estados de anterior, atual e próximo, transição de backgrounds e modo compacto;
-- botões inferiores na ordem `INICIAR | RESETAR | SOM | ALERTA | COMPACTO`; `RESETAR` para a contagem, zera o cronômetro e devolve o botão para `INICIAR`;
-- personagem Belial em PNG transparente sobreposta à esquerda entre o cabeçalho e o painel de mecânica; no modo compacto, Belial fica apoiada sobre o painel de controles;
-- botões de configurações (engrenagem) e fechar (`X`) no canto superior direito;
-- modo compacto independente e arrastável, com duplo clique para retornar à janela principal;
-- botões `NORMAL` e `X` no modo compacto para retornar e fechar o aplicativo;
-- janela de configurações para som, alertas visuais, sequência de eventos e escolha da arte do modo normal (sentada ou deitada), com pré-visualização das imagens;
-- edição local do perfil de mecânicas na própria tela de configurações.
-- opacidade configurável do fundo (incluindo imagens) e das letras (0–100%) nas duas janelas; os botões mantêm contraste para continuarem legíveis, as barras podem ser vinculadas ou independentes, e `Ctrl+Shift+O` restaura ambas a 100%.
+## Como ele ajuda durante a luta
 
-`app/config_manager.py` concentra a leitura, validação e gravação das preferências.
+Depois de apertar **INICIAR**, o timer mostra qual mecânica está acontecendo, quanto falta para a próxima e o que vem depois. Você pode deixar os avisos sonoros ligados para receber um lembrete sem precisar ficar olhando para a janela.
 
-`app/events.py` mantém as sequências de teste e real em uma única fonte de dados, separada da interface. A sequência real usa os horários confirmados até T+12:08, começa com Remoção dos Buffs em T+5 e mantém identificadores próprios para ocorrências repetidas. Os horários da sequência são verificados por testes automatizados.
+Na sequência real, o timer começa contando até a **Remoção dos Buffs**, que acontece em T+5. Quando essa contagem termina, ele já mostra o tempo até o próximo evento.
 
-Na sequência real, Remoção dos Buffs é exibida desde o início do timer, com contagem regressiva até T+5. Ao chegar a esse horário, o countdown passa imediatamente a contar até o Laser em T+20. Cada ocorrência usa somente seu horário de início; não há durações configuráveis. O relógio monotônico começa em zero no clique de iniciar.
+## Do seu jeito
 
-Na aba **Mecânicas** das configurações, os nomes e horários de início podem ser personalizados, mantendo fixa a ordem das 20 ocorrências. Os bipes das mecânicas permanecem como alertas sonoros do cronograma. O botão de restauração retorna o perfil padrão.
+- **Janela normal ou compacta:** escolha a visualização que fica melhor na sua tela. A janela compacta pode ser arrastada; dê dois cliques nela para voltar à janela normal.
+- **Imagem da Belial:** escolha entre as artes sentada e deitada e veja uma prévia nas configurações.
+- **Avisos:** ligue ou desligue os bipes e os alertas visuais.
+- **Transparência:** ajuste o fundo e as letras. Você pode mudar cada um separadamente ou vinculá-los.
+- **Mecânicas:** escolha a sequência real ou a de teste e, se quiser, personalize os nomes e horários.
+- **Posição das janelas:** o programa lembra onde você deixou cada modo. Se aquela área da tela não estiver mais disponível, ele traz a janela de volta para uma área visível.
 
-`app/alert_system.py` contém a reprodução dos alertas sonoros em threads, sem bloquear a interface.
+O botão **RESETAR** para a contagem e deixa o timer pronto para começar de novo. O atalho `Ctrl+Shift+O` restaura a opacidade do fundo e das letras para 100%.
 
-`app/timer_engine.py` mantém o relógio monotônico e emite ticks para a interface; também calcula, sem depender do desenho, o evento atual, o próximo evento e o tempo restante.
+## Como iniciar
 
-`app/alert_scheduler.py` controla quando cada aviso sonoro deve ser emitido uma única vez por evento; suas regras são testadas sem abrir a interface.
+O programa ainda está em desenvolvimento e, por enquanto, precisa do Python instalado no Windows.
 
-O widget `TimelineWidget` está isolado em `app/widgets/timeline_widget.py`; mantém os estados passado/atual/próximo, os ícones e a animação discreta, com testes próprios.
+1. Instale o **Python 3.12**, caso ainda não tenha.
+2. Baixe este projeto pelo botão **Code → Download ZIP** no GitHub e extraia os arquivos.
+3. Abra o PowerShell dentro da pasta extraída.
+4. Instale os componentes necessários:
 
-O widget `MainPanelBackground` está em `app/widgets/mechanic_panel.py`, mantendo a transição dos backgrounds e o retorno ao fundo-base sem alterar a apresentação.
+   ```powershell
+   py -3.12 -m pip install -r requirements.txt
+   ```
 
-Os widgets do cabeçalho, incluindo a arte com fade, o status da luta e o timer geral, foram isolados em `app/widgets/header_widget.py`; a dimensão e os elementos visuais aprovados foram preservados.
+5. Inicie o Belial Timer:
 
-O fundo da janela principal, com gradiente, halo e bordas, foi isolado em `app/widgets/background_widget.py` e tem teste de renderização Qt.
+   ```powershell
+   py -3.12 main.py
+   ```
 
-O diálogo de configurações foi isolado em `app/widgets/settings_dialog.py`; ele reúne as abas de preferências gerais e mecânicas. Preferências e perfis são validados e persistidos em `config.json`.
+## Ainda em desenvolvimento
 
-O modo compacto foi isolado em `app/widgets/compact_window.py`. Ele mantém a janela arrastável, os botões de iniciar, voltar ao modo normal e fechar, e compartilha os widgets de estado com o timer principal.
-
-O timer começa pelo botão `INICIAR` na janela principal ou no modo compacto. O botão `RESETAR` para o timer, zera a contagem e deixa o aplicativo pronto para iniciar novamente.
-As preferências de som, alertas visuais, modo compacto, sequência selecionada, perfil personalizado e posições das janelas são salvas em `config.json` no diretório de configurações do usuário do Windows (normalmente `%APPDATA%\Belial Timer`). Posições salvas são reposicionadas dentro de um monitor disponível caso o monitor original não esteja conectado. Sem configuração salva, o aplicativo inicia na sequência real; a sequência de teste pode ser selecionada nas configurações. Se o arquivo estiver inválido ou corrompido, informa o problema e continua com os padrões.
-
-## Instalação
-
-Recomendado usar Python 3.12:
-
-```powershell
-py -3.12 -m pip install -r requirements.txt
-```
-
-## Executar
-
-```powershell
-py -3.12 main.py
-```
-
-Para compatibilidade, `py -3.12 ui_v1.py` continua iniciando a mesma aplicação.
-
-## Testes
-
-```powershell
-py -3.12 -m unittest discover -s tests
-```
-
-## Estado do protótipo
-
-A sequência de teste e a sequência real ficam separadas no código. O arquivo ainda não está empacotado como executável.
+Este projeto ainda não tem instalador ou versão pronta para abrir sem configurar o Python. Sugestões para deixar o timer melhor são bem-vindas!
