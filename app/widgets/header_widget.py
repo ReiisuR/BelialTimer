@@ -1,8 +1,15 @@
 import os
 
-from PySide6.QtCore import Qt, QRectF
-from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPixmap
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget
+)
 
 BELIAL_ART = os.path.join(
     os.path.dirname(
@@ -13,7 +20,18 @@ BELIAL_ART = os.path.join(
         )
     ),
     "assets",
-    "belial_header.jpg"
+    "belial_sentada.png"
+)
+BELIAL_ART_OPTIONS = {
+    "sentada": BELIAL_ART,
+    "deitada": os.path.join(
+        os.path.dirname(BELIAL_ART),
+        "belial_deitada.png"
+    )
+}
+BELIAL_ELBOW_ART = os.path.join(
+    os.path.dirname(BELIAL_ART),
+    "belial_cotovelo.png"
 )
 
 
@@ -23,87 +41,87 @@ class HeaderArtWidget(QWidget):
 
     def __init__(
         self,
-        parent=None
+        parent=None,
+        fit_to_height=False,
+        image_path=BELIAL_ART
     ):
 
         super().__init__(
             parent
         )
-
-        self.pixmap = QPixmap(
-            BELIAL_ART
+        self.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents,
+            True
         )
+
+        self.image_path = image_path
+        self.pixmap = QPixmap(image_path)
+        self.fit_to_height = fit_to_height
+        self.mirror_horizontally = False
+        self.background_opacity = 1.0
+
+    def set_image_path(self, image_path):
+
+        pixmap = QPixmap(image_path)
+        if pixmap.isNull():
+            raise ValueError(
+                "Não foi possível carregar a imagem: {}".format(image_path)
+            )
+
+        self.image_path = image_path
+        self.pixmap = pixmap
+        self.update()
+
+    def set_mirrored_horizontally(self, mirrored):
+
+        self.mirror_horizontally = bool(mirrored)
+        self.update()
+
+    def set_background_opacity(self, opacity):
+
+        self.background_opacity = max(0.0, min(1.0, opacity))
+        self.update()
 
     def paintEvent(
         self,
         event
     ):
 
-        painter = QPainter(
-            self
-        )
-
-        painter.setRenderHint(
-            QPainter.RenderHint.SmoothPixmapTransform
-        )
-
         if self.pixmap.isNull():
             return
 
-        target_height = self.height()
+        target_size = self.size()
+        if self.fit_to_height:
+            target_width = round(
+                self.pixmap.width()
+                * self.height()
+                / self.pixmap.height()
+            )
+            target_size.setWidth(target_width)
 
         scaled = self.pixmap.scaled(
-            self.pixmap.width(),
-            target_height,
+            target_size,
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation
         )
 
-        painter.drawPixmap(
-            0,
-            0,
-            scaled
-        )
-
-        # Fade lateral
-        fade_width = 65
-
-        gradient = QLinearGradient(
-            self.width() - fade_width,
-            0,
-            self.width(),
-            0
-        )
-
-        gradient.setColorAt(
-            0.0,
-            QColor(
-                10,
-                10,
-                10,
-                0
+        painter = QPainter(self)
+        try:
+            painter.setRenderHint(
+                QPainter.RenderHint.SmoothPixmapTransform
             )
-        )
+            painter.setOpacity(self.background_opacity)
+            if self.mirror_horizontally:
+                painter.translate(self.width(), 0)
+                painter.scale(-1, 1)
 
-        gradient.setColorAt(
-            1.0,
-            QColor(
-                10,
-                10,
-                10,
-                255
+            painter.drawPixmap(
+                (self.width() - scaled.width()) // 2,
+                (self.height() - scaled.height()) // 2,
+                scaled
             )
-        )
-
-        painter.fillRect(
-            QRectF(
-                self.width() - fade_width,
-                0,
-                fade_width,
-                self.height()
-            ),
-            gradient
-        )
+        finally:
+            painter.end()
 
 
 # =========================================================
@@ -115,6 +133,8 @@ class HeaderWidget(QWidget):
     def __init__(
         self,
         close_callback,
+        settings_callback=None,
+        artwork_parent=None,
         parent=None
     ):
 
@@ -127,8 +147,12 @@ class HeaderWidget(QWidget):
         )
 
         self.close_callback = close_callback
+        self.settings_callback = settings_callback
+        self.artwork_parent = artwork_parent
 
         self.header_timer_label = None
+        self.header_art = None
+        self.background_opacity = 1.0
 
         self._build_ui()
 
@@ -154,16 +178,19 @@ class HeaderWidget(QWidget):
         # -------------------------------------------------
 
         art = HeaderArtWidget(
-            self
+            self.artwork_parent or self
         )
+        self.header_art = art
 
-        art.setFixedWidth(
-            260
-        )
-
-        layout.addWidget(
-            art
-        )
+        if self.artwork_parent is None:
+            art.setFixedWidth(
+                260
+            )
+            layout.addWidget(art)
+        else:
+            art_space = QWidget(self)
+            art_space.setFixedWidth(260)
+            layout.addWidget(art_space)
 
         # -------------------------------------------------
         # TITULO
@@ -238,6 +265,7 @@ class HeaderWidget(QWidget):
                 border: none;
             }
         """)
+        self.header_divider = divider
 
         title_layout.addWidget(
             title
@@ -255,6 +283,27 @@ class HeaderWidget(QWidget):
             divider
         )
 
+        self.status_label = QLabel(
+            "○  AGUARDANDO INÍCIO",
+            title_container
+        )
+        self.status_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft
+        )
+        self.status_label.setStyleSheet("""
+            QLabel {
+                color: #a34a53;
+                background: transparent;
+            }
+        """)
+        self.status_label.setFont(
+            QFont(
+                "Arial",
+                8,
+                QFont.Weight.Bold
+            )
+        )
+        title_layout.addWidget(self.status_label)
         title_layout.addStretch()
 
         layout.addWidget(
@@ -276,37 +325,68 @@ class HeaderWidget(QWidget):
 
         timer_layout.setContentsMargins(
             0,
-            12,
             5,
-            7
+            5,
+            4
         )
 
         timer_layout.setSpacing(
             0
         )
 
-        self.status_label = QLabel(
-            "○  AGUARDANDO INÍCIO"
-        )
+        actions_layout = QHBoxLayout()
+        actions_layout.setContentsMargins(0, 0, 0, 1)
+        actions_layout.setSpacing(4)
+        actions_layout.addStretch()
 
-        self.status_label.setAlignment(
-            Qt.AlignmentFlag.AlignRight
+        self.settings_button = QPushButton("⚙")
+        self.settings_button.setFixedSize(24, 22)
+        self.settings_button.setToolTip("Configurações")
+        self.settings_button.setEnabled(
+            self.settings_callback is not None
         )
+        self.settings_button.setStyleSheet("""
+            QPushButton {
+                color: #f1e6e7;
+                background: #35171b;
+                border: 1px solid #87404a;
+                border-radius: 4px;
+            }
 
-        self.status_label.setStyleSheet("""
-            QLabel {
-                color: #a34a53;
-                background: transparent;
+            QPushButton:hover {
+                color: #ffffff;
+                background: #542027;
+                border-color: #c35a66;
             }
         """)
-
-        self.status_label.setFont(
-            QFont(
-                "Arial",
-                8,
-                QFont.Weight.Bold
+        if self.settings_callback is not None:
+            self.settings_button.clicked.connect(
+                self.settings_callback
             )
-        )
+        actions_layout.addWidget(self.settings_button)
+
+        self.close_button = QPushButton("×")
+        self.close_button.setFixedSize(24, 22)
+        self.close_button.setToolTip("Fechar")
+        self.close_button.setStyleSheet("""
+            QPushButton {
+                color: #f1e6e7;
+                background: #35171b;
+                border: 1px solid #87404a;
+                border-radius: 4px;
+                font-size: 16px;
+            }
+
+            QPushButton:hover {
+                color: #ffffff;
+                background: #6b2027;
+                border-color: #e1848c;
+            }
+        """)
+        self.close_button.clicked.connect(self.close_callback)
+        actions_layout.addWidget(self.close_button)
+
+        timer_layout.addLayout(actions_layout)
 
         timer_label = QLabel(
             "00:00"
@@ -335,16 +415,18 @@ class HeaderWidget(QWidget):
         self.header_timer_label = timer_label
 
         timer_layout.addWidget(
-            self.status_label
-        )
-
-        timer_layout.addWidget(
             timer_label
         )
 
         layout.addWidget(
             timer_container
         )
+
+    def set_background_opacity(self, opacity):
+
+        self.background_opacity = max(0.0, min(1.0, opacity))
+        self.header_art.set_background_opacity(opacity)
+        self.update()
 
     def paintEvent(
         self,
@@ -355,6 +437,7 @@ class HeaderWidget(QWidget):
             self
         )
 
+        painter.setOpacity(self.background_opacity)
         painter.fillRect(
             self.rect(),
             QColor("#101010")

@@ -11,12 +11,16 @@ from .timer_engine import (
     get_event_state
 )
 from .profile_manager import (
-    build_mechanics,
-    build_skill_reminders
+    build_mechanics
 )
+from .opacity import apply_background_opacity
 from .widgets.timeline_widget import TimelineWidget
 from .widgets.mechanic_panel import MainPanelBackground
-from .widgets.header_widget import HeaderWidget
+from .widgets.header_widget import (
+    BELIAL_ART_OPTIONS,
+    HeaderArtWidget,
+    HeaderWidget
+)
 from .widgets.background_widget import BackgroundWidget
 from .widgets.compact_window import CompactWindow
 from .widgets.settings_dialog import SettingsDialog
@@ -24,10 +28,15 @@ from .widgets.settings_dialog import SettingsDialog
 from PySide6.QtCore import (
     Qt,
     QTimer,
+    QPoint,
+    QEvent
 )
 
 from PySide6.QtGui import (
     QFont,
+    QKeySequence,
+    QShortcut,
+    QGuiApplication
 )
 
 from PySide6.QtWidgets import (
@@ -39,6 +48,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QFrame,
     QDialog,
+    QGraphicsOpacityEffect,
     QMessageBox
 )
 
@@ -150,12 +160,28 @@ class MainWindow(QWidget):
         )
 
         self._drag_position = None
+        self._position_tracking_ready = False
+        self._position_save_timer = QTimer(self)
+        self._position_save_timer.setSingleShot(True)
+        self._position_save_timer.setInterval(400)
+        self._position_save_timer.timeout.connect(
+            self._save_active_window_position
+        )
 
         # -------------------------------------------------
         # UI
         # -------------------------------------------------
 
         self._build_ui()
+        self.lying_art_overlay = None
+        self.apply_header_art(self.config["header_art"])
+        self._text_opacity_effects = []
+        self._background_style_widgets = []
+        self.apply_display_opacities(
+            self.config["background_opacity"],
+            self.config["text_opacity"],
+            self.config["opacities_linked"]
+        )
 
         self._update_timer_running_ui()
 
@@ -164,6 +190,8 @@ class MainWindow(QWidget):
         self.apply_visual_alerts_state()
 
         self.update_timer_display()
+        self._restore_window_position("normal", self)
+        self._position_tracking_ready = True
 
         if config_warning:
             QMessageBox.warning(
@@ -211,8 +239,13 @@ class MainWindow(QWidget):
         # -------------------------------------------------
 
         header = HeaderWidget(
-            self.close_app
+            close_callback=self.close_app,
+            settings_callback=self.open_settings,
+            artwork_parent=self
         )
+        self.header_widget = header
+        self.settings_button = header.settings_button
+        self.close_button = header.close_button
 
         self.header_timer_label = (
             header.header_timer_label
@@ -234,6 +267,12 @@ class MainWindow(QWidget):
 
         self.main_panel.setMinimumHeight(
             240
+        )
+        header.header_art.setGeometry(
+            26,
+            -4,
+            260,
+            195
         )
 
         panel_layout = QVBoxLayout(
@@ -440,6 +479,15 @@ class MainWindow(QWidget):
             self.start_timer
         )
 
+        # Reset
+        self.reset_button = QPushButton(
+            "RESETAR"
+        )
+
+        self.reset_button.clicked.connect(
+            self.reset_timer
+        )
+
         # Som
         self.sound_button = QPushButton(
             "● SOM ATIVO"
@@ -458,50 +506,21 @@ class MainWindow(QWidget):
             self.toggle_visual_alerts
         )
 
-        # Configurações
-        settings_button = QPushButton(
-            "CONFIG"
-        )
-
-        settings_button.clicked.connect(
-            self.open_settings
-        )
-
         # Compacto
-        compact_button = QPushButton(
+        self.compact_button = QPushButton(
             "COMPACTO"
         )
 
-        compact_button.clicked.connect(
+        self.compact_button.clicked.connect(
             self.toggle_compact_mode
-        )
-
-        # Reset
-        reset_button = QPushButton(
-            "RESETAR"
-        )
-
-        reset_button.clicked.connect(
-            lambda: self.reset_timer()
-        )
-
-        # Fechar
-        close_button = QPushButton(
-            "FECHAR"
-        )
-
-        close_button.clicked.connect(
-            self.close_app
         )
 
         buttons = [
             self.start_button,
+            self.reset_button,
             self.sound_button,
             self.alerts_button,
-            settings_button,
-            compact_button,
-            reset_button,
-            close_button
+            self.compact_button
         ]
 
         for button in buttons:
@@ -512,27 +531,28 @@ class MainWindow(QWidget):
 
             button.setStyleSheet("""
                 QPushButton {
-                    color: #aaaaaa;
-                    background: #171717;
-                    border: 1px solid #303030;
+                    color: #f1e6e7;
+                    background: #35171b;
+                    border: 1px solid #87404a;
                     border-radius: 4px;
                     padding: 0 9px;
                 }
 
                 QPushButton:hover {
-                    color: #eeeeee;
-                    background: #202020;
-                    border: 1px solid #6b2027;
+                    color: #ffffff;
+                    background: #542027;
+                    border: 1px solid #c35a66;
                 }
 
                 QPushButton:pressed {
-                    background: #101010;
+                    background: #6b2027;
+                    border-color: #e1848c;
                 }
 
                 QPushButton:disabled {
-                    color: #7c464b;
-                    background: #151515;
-                    border: 1px solid #292020;
+                    color: #a8787d;
+                    background: #241619;
+                    border: 1px solid #533037;
                 }
             """)
 
@@ -558,11 +578,29 @@ class MainWindow(QWidget):
             restore_callback=self.toggle_compact_mode,
             close_callback=self.close_app
         )
+        self.compact_widget.position_changed.connect(
+            self._schedule_position_save
+        )
 
         self.compact_mechanic_label = self.compact_widget.mechanic_label
         self.compact_countdown_label = self.compact_widget.countdown_label
         self.compact_start_button = self.compact_widget.start_button
         self.compact_next_label = self.compact_widget.next_label
+        self.opacity_reset_shortcut = QShortcut(
+            QKeySequence("Ctrl+Shift+O"),
+            self
+        )
+        self.opacity_reset_shortcut.activated.connect(
+            self.restore_full_opacity
+        )
+        self.compact_opacity_reset_shortcut = QShortcut(
+            QKeySequence("Ctrl+Shift+O"),
+            self.compact_widget
+        )
+        self.compact_opacity_reset_shortcut.activated.connect(
+            self.restore_full_opacity
+        )
+        self.header_widget.header_art.raise_()
 
     # =====================================================
     # LABEL HELPER
@@ -702,7 +740,8 @@ class MainWindow(QWidget):
 
         event_state = get_event_state(
             self.events,
-            current_time
+            current_time,
+            show_first_during_countdown=not self.test_mode
         )
 
         current_index = event_state.current_index
@@ -711,17 +750,25 @@ class MainWindow(QWidget):
         current_event = event_state.current_event
         next_event = event_state.next_event
         remaining = event_state.remaining
-
-        new_skill_reminders = set()
-        if not self.test_mode and self.timer_running:
-            skill_reminders = build_skill_reminders(
-                self.custom_profile,
-                self.events
+        if last_started_index < 0:
+            display_event = current_event
+            display_current_index = current_index
+            display_next_index = next_index
+            display_next_event = next_event
+        elif next_event is not None:
+            display_event = next_event
+            display_current_index = next_index
+            display_next_index = next_index + 1
+            display_next_event = (
+                self.events[display_next_index]
+                if display_next_index < len(self.events)
+                else None
             )
-            new_skill_reminders = self.alert_scheduler.new_skill_reminders(
-                skill_reminders,
-                current_time
-            )
+        else:
+            display_event = current_event
+            display_current_index = current_index
+            display_next_index = next_index
+            display_next_event = None
 
         # -------------------------------------------------
         # INTERROMPE O PULSO AO INICIAR UMA MECÂNICA
@@ -755,31 +802,24 @@ class MainWindow(QWidget):
                 remaining
             )
 
-        if (
-            self.timer_running
-            and new_skill_reminders
-            and not scheduled_alerts
-        ):
-            self.alert_system.mechanic()
-
         # -------------------------------------------------
         # MECÂNICA ATUAL
         # -------------------------------------------------
 
-        if current_event is not None:
+        if display_event is not None:
 
             self.main_panel.set_background(
-                current_event.get(
+                display_event.get(
                     "background"
                 )
             )
 
             self.mechanic_label.setText(
-                current_event["name"]
+                display_event["name"]
             )
 
             self.compact_mechanic_label.setText(
-                current_event["short"]
+                display_event["short"]
             )
 
         else:
@@ -800,16 +840,16 @@ class MainWindow(QWidget):
         # PRÓXIMA
         # -------------------------------------------------
 
-        if next_event is not None:
+        if display_next_event is not None:
 
             self.next_label.setText(
                 "PRÓXIMA: "
-                + next_event["name"]
+                + display_next_event["name"]
             )
 
             self.compact_next_label.setText(
                 "PRÓXIMA: "
-                + next_event["short"]
+                + display_next_event["short"]
             )
 
         else:
@@ -884,8 +924,8 @@ class MainWindow(QWidget):
         # -------------------------------------------------
 
         self.update_timeline(
-            current_index,
-            next_index,
+            display_current_index,
+            display_next_index,
             last_started_index
         )
 
@@ -904,7 +944,7 @@ class MainWindow(QWidget):
             len(self.events) - 3
         )
 
-        if last_started_index < 0:
+        if current_index < 0:
 
             start_index = 0
 
@@ -913,7 +953,7 @@ class MainWindow(QWidget):
             start_index = max(
                 0,
                 min(
-                    last_started_index - 1,
+                    current_index - 1,
                     max_start
                 )
             )
@@ -1085,7 +1125,8 @@ class MainWindow(QWidget):
 
         event_state = get_event_state(
             self.events,
-            current_time
+            current_time,
+            show_first_during_countdown=not self.test_mode
         )
 
         if event_state.next_event is None:
@@ -1202,17 +1243,17 @@ class MainWindow(QWidget):
 
             self.sound_button.setStyleSheet("""
                 QPushButton {
-                    color: #aaaaaa;
-                    background: #171717;
-                    border: 1px solid #303030;
+                    color: #f1e6e7;
+                    background: #35171b;
+                    border: 1px solid #87404a;
                     border-radius: 4px;
                     padding: 0 9px;
                 }
 
                 QPushButton:hover {
-                    color: #eeeeee;
-                    background: #202020;
-                    border: 1px solid #6b2027;
+                    color: #ffffff;
+                    background: #542027;
+                    border: 1px solid #c35a66;
                 }
             """)
 
@@ -1224,17 +1265,17 @@ class MainWindow(QWidget):
 
             self.sound_button.setStyleSheet("""
                 QPushButton {
-                    color: #777777;
-                    background: #121212;
-                    border: 1px solid #292929;
+                    color: #cbb8bb;
+                    background: #241619;
+                    border: 1px solid #533037;
                     border-radius: 4px;
                     padding: 0 9px;
                 }
 
                 QPushButton:hover {
-                    color: #aaaaaa;
-                    background: #1b1b1b;
-                    border: 1px solid #444444;
+                    color: #ffffff;
+                    background: #3b2024;
+                    border: 1px solid #87404a;
                 }
             """)
 
@@ -1276,28 +1317,35 @@ class MainWindow(QWidget):
             """
             QPushButton {
                 color: %s;
-                background: #171717;
-                border: 1px solid #303030;
+                background: %s;
+                border: 1px solid %s;
                 border-radius: 4px;
                 padding: 0 9px;
             }
 
             QPushButton:hover {
-                color: #eeeeee;
-                background: #202020;
-                border: 1px solid #6b2027;
+                color: #ffffff;
+                background: #542027;
+                border: 1px solid #c35a66;
             }
             """
             % (
-                "#aaaaaa"
+                "#f1e6e7"
                 if self.visual_alerts_enabled
-                else "#777777"
+                else "#cbb8bb",
+                "#35171b"
+                if self.visual_alerts_enabled
+                else "#241619",
+                "#87404a"
+                if self.visual_alerts_enabled
+                else "#533037"
             )
         )
 
         event_state = get_event_state(
             self.events,
-            self.game_time
+            self.game_time,
+            show_first_during_countdown=not self.test_mode
         )
 
         self.update_countdown_style(
@@ -1317,6 +1365,10 @@ class MainWindow(QWidget):
             visual_alerts_enabled=self.visual_alerts_enabled,
             test_mode=self.test_mode,
             profile=self.custom_profile,
+            background_opacity=self.config["background_opacity"],
+            text_opacity=self.config["text_opacity"],
+            opacities_linked=self.config["opacities_linked"],
+            header_art=self.config["header_art"],
             parent=self
         )
 
@@ -1326,14 +1378,20 @@ class MainWindow(QWidget):
         self.alert_system.enabled = (
             dialog.sound_checkbox.isChecked()
         )
+        self.config["header_art"] = dialog.header_art_combo.currentData()
+        self.apply_header_art(self.config["header_art"])
 
         self.visual_alerts_enabled = (
             dialog.visual_alerts_checkbox.isChecked()
         )
-
         self.update_sound_button()
 
         self.apply_visual_alerts_state()
+        self.apply_display_opacities(
+            dialog.background_opacity_slider.value(),
+            dialog.text_opacity_slider.value(),
+            dialog.link_opacities_button.isChecked()
+        )
 
         selected_test_mode = bool(
             dialog.event_mode_combo.currentData()
@@ -1360,6 +1418,189 @@ class MainWindow(QWidget):
 
         self._save_user_config()
 
+    def apply_header_art(self, art_name):
+
+        art = self.header_widget.header_art
+        art.set_image_path(BELIAL_ART_OPTIONS[art_name])
+        is_lying = art_name == "deitada"
+        art.set_mirrored_horizontally(is_lying)
+
+        if is_lying:
+            if self.lying_art_overlay is None:
+                self.lying_art_overlay = HeaderArtWidget(
+                    self,
+                    image_path=BELIAL_ART_OPTIONS["deitada"]
+                )
+                self.lying_art_overlay.setWindowFlags(
+                    Qt.WindowType.Tool
+                    | Qt.WindowType.FramelessWindowHint
+                    | Qt.WindowType.WindowStaysOnTopHint
+                    | Qt.WindowType.WindowDoesNotAcceptFocus
+                )
+                self.lying_art_overlay.setAttribute(
+                    Qt.WidgetAttribute.WA_TranslucentBackground,
+                    True
+                )
+                self.lying_art_overlay.setAttribute(
+                    Qt.WidgetAttribute.WA_ShowWithoutActivating,
+                    True
+                )
+                self.lying_art_overlay.setStyleSheet(
+                    "background: transparent; border: none;"
+                )
+
+            art.hide()
+            self.lying_art_overlay.set_image_path(
+                BELIAL_ART_OPTIONS["deitada"]
+            )
+            self.lying_art_overlay.set_mirrored_horizontally(True)
+            self.lying_art_overlay.set_background_opacity(
+                self.config["background_opacity"] / 100
+            )
+            self._position_lying_art_overlay()
+            if self.isVisible() and not self.compact:
+                self.lying_art_overlay.show()
+                self.lying_art_overlay.raise_()
+                QTimer.singleShot(0, self._raise_lying_art_overlay)
+        else:
+            if self.lying_art_overlay is not None:
+                self.lying_art_overlay.hide()
+            art.show()
+            art.setGeometry(26, -4, 260, 195)
+
+    def moveEvent(self, event):
+
+        super().moveEvent(event)
+        self._position_lying_art_overlay()
+        if (
+            self._position_tracking_ready
+            and not self.compact
+            and self.isVisible()
+        ):
+            self._schedule_position_save()
+
+    def showEvent(self, event):
+
+        super().showEvent(event)
+        self._position_lying_art_overlay()
+        if (
+            self.lying_art_overlay is not None
+            and self.config["header_art"] == "deitada"
+            and not self.compact
+        ):
+            self.lying_art_overlay.show()
+            self.lying_art_overlay.raise_()
+            QTimer.singleShot(0, self._raise_lying_art_overlay)
+
+    def changeEvent(self, event):
+
+        super().changeEvent(event)
+        if event.type() != QEvent.Type.WindowStateChange:
+            return
+
+        overlay = getattr(self, "lying_art_overlay", None)
+        if overlay is None:
+            return
+
+        if self.isMinimized():
+            overlay.hide()
+        elif (
+            self.isVisible()
+            and not self.compact
+            and self.config["header_art"] == "deitada"
+        ):
+            QTimer.singleShot(0, self._raise_lying_art_overlay)
+
+    def hideEvent(self, event):
+
+        super().hideEvent(event)
+        if self.lying_art_overlay is not None:
+            self.lying_art_overlay.hide()
+
+    def _position_lying_art_overlay(self):
+
+        overlay = getattr(self, "lying_art_overlay", None)
+        if overlay is None:
+            return
+
+        position = self.mapToGlobal(QPoint(-95, -80))
+        overlay.setGeometry(
+            position.x(),
+            position.y(),
+            360,
+            270
+        )
+
+    def _raise_lying_art_overlay(self):
+
+        overlay = getattr(self, "lying_art_overlay", None)
+        if (
+            overlay is not None
+            and self.isVisible()
+            and not self.compact
+            and self.config["header_art"] == "deitada"
+        ):
+            self._position_lying_art_overlay()
+            overlay.show()
+            overlay.raise_()
+
+    def _restore_window_position(self, mode, window, fallback=None):
+
+        positions = self.config.get("window_positions", {})
+        saved_position = positions.get(mode)
+        position = saved_position if saved_position is not None else fallback
+        if position is None:
+            return False
+
+        point = QPoint(position[0], position[1])
+        screen = QGuiApplication.screenAt(point)
+        if screen is None:
+            screen = QGuiApplication.primaryScreen()
+        if screen is None:
+            window.move(point)
+            return True
+
+        bounds = screen.availableGeometry()
+        margin = 48
+        min_x = bounds.left() - window.width() + margin
+        max_x = bounds.right() - margin
+        min_y = bounds.top() - window.height() + margin
+        max_y = bounds.bottom() - margin
+        if min_x > max_x:
+            min_x = max_x = bounds.left()
+        if min_y > max_y:
+            min_y = max_y = bounds.top()
+
+        window.move(
+            max(min_x, min(point.x(), max_x)),
+            max(min_y, min(point.y(), max_y))
+        )
+        return True
+
+    def _store_window_position(self, mode, window):
+
+        positions = self.config.setdefault(
+            "window_positions",
+            {"normal": None, "compact": None}
+        )
+        position = window.pos()
+        positions[mode] = [position.x(), position.y()]
+
+    def _schedule_position_save(self):
+
+        if self._position_tracking_ready:
+            self._position_save_timer.start()
+
+    def _save_active_window_position(self):
+
+        if self.compact:
+            if self.compact_widget.isVisible():
+                self._store_window_position("compact", self.compact_widget)
+        elif self.isVisible():
+            self._store_window_position("normal", self)
+
+        self._save_user_config()
+
     def _save_user_config(
         self
     ):
@@ -1369,6 +1610,11 @@ class MainWindow(QWidget):
             "visual_alerts_enabled": self.visual_alerts_enabled,
             "compact_mode": self.compact,
             "test_mode": self.test_mode,
+            "background_opacity": self.config["background_opacity"],
+            "text_opacity": self.config["text_opacity"],
+            "opacities_linked": self.config["opacities_linked"],
+            "header_art": self.config["header_art"],
+            "window_positions": self.config["window_positions"],
             "custom_profile": self.custom_profile
         })
 
@@ -1387,13 +1633,67 @@ class MainWindow(QWidget):
                 )
             )
 
+    def apply_display_opacities(
+        self,
+        background_opacity,
+        text_opacity,
+        opacities_linked
+    ):
+
+        background_opacity = max(0, min(100, int(background_opacity)))
+        text_opacity = max(0, min(100, int(text_opacity)))
+        self.config["background_opacity"] = background_opacity
+        self.config["text_opacity"] = text_opacity
+        self.config["opacities_linked"] = bool(opacities_linked)
+        background_value = background_opacity / 100
+        text_value = text_opacity / 100
+
+        self.background.set_background_opacity(background_value)
+        self.main_panel.set_background_opacity(background_value)
+        self.header_widget.set_background_opacity(background_value)
+        self.compact_widget.set_background_opacity(background_opacity)
+        if self.lying_art_overlay is not None:
+            self.lying_art_overlay.set_background_opacity(background_value)
+
+        styled_widgets = [
+            *self.findChildren(QWidget),
+            self.compact_widget,
+            *self.compact_widget.findChildren(QWidget)
+        ]
+        for widget in styled_widgets:
+            if widget.styleSheet() and not isinstance(widget, QPushButton):
+                apply_background_opacity(widget, background_opacity)
+
+        if not self._text_opacity_effects:
+            text_widgets = [
+                *self.findChildren(QLabel),
+                *self.compact_widget.findChildren(QLabel),
+                self.timeline
+            ]
+            seen_widgets = set()
+            for widget in text_widgets:
+                if widget in seen_widgets:
+                    continue
+                seen_widgets.add(widget)
+                effect = QGraphicsOpacityEffect(widget)
+                widget.setGraphicsEffect(effect)
+                self._text_opacity_effects.append(effect)
+
+        for effect in self._text_opacity_effects:
+            effect.setOpacity(text_value)
+
+    def restore_full_opacity(self):
+
+        self.apply_display_opacities(100, 100, True)
+        self._save_user_config()
+
     # =====================================================
     # RESET
     # =====================================================
 
     def reset_timer(
         self,
-        start_after_reset=True
+        start_after_reset=False
     ):
 
         self.timer_engine.stop()
@@ -1507,34 +1807,32 @@ class MainWindow(QWidget):
         self
     ):
 
-        self.compact = (
-            not self.compact
-        )
-
-        self._save_user_config()
-
-        if self.compact:
-
-            self.hide()
-
-            self.compact_widget.move(
-                20,
-                20
+        if not self.compact:
+            self._store_window_position("normal", self)
+            normal_position = self.pos()
+            self.compact = True
+            self._restore_window_position(
+                "compact",
+                self.compact_widget,
+                fallback=[normal_position.x(), normal_position.y()]
             )
 
+            self.hide()
             self.compact_widget.show()
-
             self.compact_widget.raise_()
-
         else:
+            self._store_window_position("compact", self.compact_widget)
+            self.compact = False
 
             self.compact_widget.hide()
-
+            self._restore_window_position("normal", self)
             self.show()
-
             self.raise_()
-
             self.activateWindow()
+            QTimer.singleShot(0, self._raise_lying_art_overlay)
+
+        self._position_save_timer.stop()
+        self._save_user_config()
 
     # ARRASTAR JANELA
     # =====================================================
@@ -1590,6 +1888,13 @@ class MainWindow(QWidget):
     def close_app(
         self
     ):
+
+        if self.compact and self.compact_widget.isVisible():
+            self._store_window_position("compact", self.compact_widget)
+        elif self.isVisible():
+            self._store_window_position("normal", self)
+        self._position_save_timer.stop()
+        self._save_user_config()
 
         self.timer_engine.stop()
 

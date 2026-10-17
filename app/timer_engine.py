@@ -13,7 +13,7 @@ class EventState:
     last_started_index: int
 
 
-def get_event_state(events, elapsed_time):
+def get_event_state(events, elapsed_time, show_first_during_countdown=False):
 
     if not events:
         return EventState(
@@ -48,24 +48,28 @@ def get_event_state(events, elapsed_time):
     )
     current_index = -1
     current_event = None
-
-    if last_started_index >= 0:
-        scheduled_event = events[last_started_index]
-        start_time = start_times[last_started_index]
-        duration = scheduled_event.get("duration_seconds")
-
-        if duration is None and next_index < len(events):
-            duration = start_times[next_index] - start_time
-
-        if duration is None or elapsed_time < start_time + duration:
-            current_index = last_started_index
-            current_event = scheduled_event
-
-    remaining = (
-        max(0, start_times[next_index] - elapsed_time)
-        if next_event is not None
-        else 0
+    showing_first_during_countdown = (
+        last_started_index < 0
+        and show_first_during_countdown
+        and bool(events)
     )
+
+    if showing_first_during_countdown:
+        current_index = 0
+        current_event = events[0]
+        next_index = 1
+        next_event = events[next_index] if next_index < len(events) else None
+        remaining = max(0, start_times[0] - elapsed_time)
+    elif last_started_index >= 0:
+        current_index = last_started_index
+        current_event = events[last_started_index]
+
+    if not showing_first_during_countdown:
+        remaining = (
+            max(0, start_times[next_index] - elapsed_time)
+            if next_event is not None
+            else 0
+        )
 
     return EventState(
         current_index=current_index,

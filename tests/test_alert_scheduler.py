@@ -63,40 +63,5 @@ class AlertSchedulerTests(unittest.TestCase):
             ["mechanic", "warning", "countdown", "critical"]
         )
 
-    def test_skill_reminders_fire_once_per_association(self):
-        reminders = [
-            {"id": "guard:laser", "reminder_time": 17},
-            {"id": "protection:laser", "reminder_time": 17},
-            {"id": "guard:hitkill", "reminder_time": 25}
-        ]
-
-        self.assertEqual(
-            self.scheduler.new_skill_reminders(reminders, 16),
-            set()
-        )
-        self.assertEqual(
-            self.scheduler.new_skill_reminders(reminders, 17),
-            {"guard:laser", "protection:laser"}
-        )
-        self.assertEqual(
-            self.scheduler.new_skill_reminders(reminders, 17),
-            set()
-        )
-        self.assertEqual(
-            self.scheduler.new_skill_reminders(reminders, 25),
-            {"guard:hitkill"}
-        )
-
-    def test_reset_allows_skill_reminders_to_fire_again(self):
-        reminders = [{"id": "guard:laser", "reminder_time": 17}]
-        self.scheduler.new_skill_reminders(reminders, 17)
-        self.scheduler.reset()
-
-        self.assertEqual(
-            self.scheduler.new_skill_reminders(reminders, 17),
-            {"guard:laser"}
-        )
-
-
 if __name__ == "__main__":
     unittest.main()

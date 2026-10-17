@@ -18,6 +18,16 @@ class BackgroundWidget(QWidget):
             Qt.WidgetAttribute.WA_StyledBackground,
             True
         )
+        self.setAttribute(
+            Qt.WidgetAttribute.WA_TranslucentBackground,
+            True
+        )
+        self.background_opacity = 1.0
+
+    def set_background_opacity(self, opacity):
+
+        self.background_opacity = max(0.0, min(1.0, opacity))
+        self.update()
 
     def paintEvent(
         self,
@@ -31,6 +41,7 @@ class BackgroundWidget(QWidget):
         painter.setRenderHint(
             QPainter.RenderHint.Antialiasing
         )
+        painter.setOpacity(self.background_opacity)
 
         rect = self.rect()
 

@@ -1,15 +1,21 @@
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
-    QHBoxLayout,
+    QGridLayout,
     QLabel,
+    QFrame,
     QPushButton,
     QVBoxLayout,
     QWidget
 )
 
+from ..opacity import apply_background_opacity
+from .header_widget import BELIAL_ELBOW_ART, HeaderArtWidget
+
 
 class CompactWindow(QWidget):
+
+    position_changed = Signal()
 
     def __init__(
         self,
@@ -26,11 +32,12 @@ class CompactWindow(QWidget):
             |
             Qt.WindowType.WindowStaysOnTopHint
         )
-
-        self.setFixedSize(
-            220,
-            190
+        self.setAttribute(
+            Qt.WidgetAttribute.WA_TranslucentBackground,
+            True
         )
+
+        self.setFixedSize(380, 330)
 
         self.setToolTip(
             "Dê duplo clique para voltar à janela principal."
@@ -50,6 +57,11 @@ class CompactWindow(QWidget):
 
         self.hide()
 
+    def set_background_opacity(self, opacity):
+
+        apply_background_opacity(self.content_panel, opacity)
+        self.character_art.set_background_opacity(opacity / 100)
+
     def _build_ui(
         self,
         start_callback,
@@ -57,9 +69,25 @@ class CompactWindow(QWidget):
         close_callback
     ):
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 12, 14, 12)
-        layout.setSpacing(2)
+        self.content_panel = QWidget(self)
+        self.content_panel.setObjectName("compactPanel")
+        self.content_panel.setGeometry(
+            8,
+            148,
+            self.width() - 16,
+            self.height() - 156
+        )
+
+        self.character_art = HeaderArtWidget(
+            self,
+            fit_to_height=True,
+            image_path=BELIAL_ELBOW_ART
+        )
+        self.character_art.setGeometry(35, -18, 310, 225)
+
+        layout = QVBoxLayout(self.content_panel)
+        layout.setContentsMargins(14, 10, 14, 8)
+        layout.setSpacing(4)
 
         title = QLabel("BELIAL")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -71,14 +99,14 @@ class CompactWindow(QWidget):
         """)
         title.setFont(QFont("Arial", 11, QFont.Weight.Bold))
 
-        self.close_button = QPushButton("X", self)
+        self.close_button = QPushButton("X", self.content_panel)
         self.close_button.setFixedSize(22, 20)
         self.close_button.setToolTip("Fechar o Belial Timer.")
         self.close_button.setStyleSheet("""
             QPushButton {
-                color: #aaaaaa;
-                background: #171717;
-                border: 1px solid #303030;
+                color: #f1e6e7;
+                background: #35171b;
+                border: 1px solid #87404a;
                 border-radius: 3px;
                 padding: 0;
             }
@@ -86,50 +114,56 @@ class CompactWindow(QWidget):
             QPushButton:hover {
                 color: #ffffff;
                 background: #6b2027;
-                border: 1px solid #8a3038;
+                border: 1px solid #e1848c;
             }
         """)
         self.close_button.clicked.connect(close_callback)
 
-        self.restore_button = QPushButton("NORMAL", self)
-        self.restore_button.setFixedSize(48, 20)
+        self.restore_button = QPushButton("NORMAL", self.content_panel)
+        self.restore_button.setFixedSize(66, 22)
         self.restore_button.setToolTip("Voltar à janela principal.")
         self.restore_button.setStyleSheet("""
             QPushButton {
-                color: #aaaaaa;
-                background: #171717;
-                border: 1px solid #303030;
+                color: #f1e6e7;
+                background: #35171b;
+                border: 1px solid #87404a;
                 border-radius: 3px;
                 padding: 0 3px;
             }
 
             QPushButton:hover {
                 color: #ffffff;
-                background: #202020;
-                border: 1px solid #6b2027;
+                background: #542027;
+                border: 1px solid #c35a66;
             }
         """)
         self.restore_button.clicked.connect(restore_callback)
 
-        header = QHBoxLayout()
-        header.addWidget(self.restore_button)
-        header.addStretch()
-        header.addWidget(title)
-        header.addStretch()
-        header.addWidget(self.close_button)
+        header = QGridLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+        header.setHorizontalSpacing(0)
+        header.setColumnMinimumWidth(0, self.restore_button.width())
+        header.setColumnMinimumWidth(2, self.restore_button.width())
+        header.setColumnStretch(1, 1)
+        header.addWidget(self.restore_button, 0, 0, Qt.AlignmentFlag.AlignLeft)
+        header.addWidget(title, 0, 1, Qt.AlignmentFlag.AlignCenter)
+        header.addWidget(self.close_button, 0, 2, Qt.AlignmentFlag.AlignRight)
 
         self.mechanic_label = QLabel("AGUARDANDO...")
+        self.mechanic_label.setParent(self.content_panel)
         self.mechanic_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.mechanic_label.setFixedHeight(22)
         self.mechanic_label.setStyleSheet("""
             QLabel {
                 color: #aaaaaa;
                 background: transparent;
             }
         """)
-        self.mechanic_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
+        self.mechanic_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
 
-        self.countdown_label = QLabel("--")
+        self.countdown_label = QLabel("--", self.content_panel)
         self.countdown_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.countdown_label.setFixedHeight(48)
         self.countdown_label.setStyleSheet("""
             QLabel {
                 color: #ffffff;
@@ -140,51 +174,60 @@ class CompactWindow(QWidget):
         compact_font.setBold(True)
         self.countdown_label.setFont(compact_font)
 
-        self.start_button = QPushButton("INICIAR TIMER", self)
-        self.start_button.setFixedHeight(22)
+        self.start_button = QPushButton("INICIAR TIMER", self.content_panel)
+        self.start_button.setFixedHeight(25)
         self.start_button.setStyleSheet("""
             QPushButton {
-                color: #dddddd;
-                background: #171717;
-                border: 1px solid #303030;
+                color: #f1e6e7;
+                background: #35171b;
+                border: 1px solid #87404a;
                 border-radius: 3px;
                 padding: 0 8px;
             }
 
             QPushButton:hover {
-                border-color: #6b2027;
+                color: #ffffff;
+                background: #542027;
+                border-color: #c35a66;
             }
 
             QPushButton:disabled {
-                color: #7c464b;
-                background: #151515;
-                border: 1px solid #292020;
+                color: #a8787d;
+                background: #241619;
+                border: 1px solid #533037;
             }
         """)
         self.start_button.clicked.connect(start_callback)
 
-        self.next_label = QLabel("PRÓXIMA: --")
+        self.next_label = QLabel("PRÓXIMA: --", self.content_panel)
         self.next_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.next_label.setFixedHeight(18)
         self.next_label.setStyleSheet("""
             QLabel {
                 color: #777777;
                 background: transparent;
             }
         """)
-        self.next_label.setFont(QFont("Arial", 7))
+        self.next_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
 
         layout.addLayout(header)
         layout.addWidget(self.mechanic_label)
         layout.addWidget(self.countdown_label)
         layout.addWidget(self.start_button)
         layout.addWidget(self.next_label)
-        self.setStyleSheet("""
-            QWidget {
+        layout.addStretch(1)
+        divider = QFrame(self.content_panel)
+        divider.setFixedHeight(1)
+        divider.setStyleSheet("background: #4a252b; border: none;")
+        layout.insertWidget(1, divider)
+        self.content_panel.setStyleSheet("""
+            QWidget#compactPanel {
                 background: #101010;
-                border: 1px solid #4a1d22;
+                border: 1px solid #87404a;
                 border-radius: 8px;
             }
         """)
+        self.character_art.raise_()
 
     def eventFilter(
         self,
@@ -229,3 +272,8 @@ class CompactWindow(QWidget):
             return True
 
         return super().eventFilter(watched, event)
+
+    def moveEvent(self, event):
+
+        super().moveEvent(event)
+        self.position_changed.emit()

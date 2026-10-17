@@ -10,28 +10,6 @@ class AlertScheduler:
         self.last_mechanic_event = -1
         self.last_countdown_second = -1
         self.last_critical_event = -1
-        self.alerted_reminders = set()
-
-    def new_skill_reminders(
-        self,
-        reminders,
-        elapsed_time
-    ):
-
-        due_reminders = {
-            reminder["id"]
-            for reminder in reminders
-            if (
-                reminder["reminder_time"] <= elapsed_time
-                and reminder["id"] not in self.alerted_reminders
-            )
-        }
-
-        self.alerted_reminders.update(
-            due_reminders
-        )
-
-        return due_reminders
 
     def alerts_for_state(
         self,

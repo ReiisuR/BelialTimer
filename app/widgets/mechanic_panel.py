@@ -27,6 +27,11 @@ class MainPanelBackground(QWidget):
             Qt.WidgetAttribute.WA_StyledBackground,
             True
         )
+        self.setAttribute(
+            Qt.WidgetAttribute.WA_TranslucentBackground,
+            True
+        )
+        self.background_opacity = 1.0
 
         self.image_path = None
 
@@ -49,6 +54,11 @@ class MainPanelBackground(QWidget):
         self.transition_timer.timeout.connect(
             self._update_transition
         )
+
+    def set_background_opacity(self, opacity):
+
+        self.background_opacity = max(0.0, min(1.0, opacity))
+        self.update()
 
     def _load_pixmap(
         self,
@@ -202,6 +212,7 @@ class MainPanelBackground(QWidget):
             self
         )
 
+        painter.setOpacity(self.background_opacity)
         painter.setRenderHint(
             QPainter.RenderHint.SmoothPixmapTransform
         )
@@ -220,7 +231,8 @@ class MainPanelBackground(QWidget):
             self._draw_pixmap_cover(
                 painter,
                 self.old_pixmap,
-                1.0 - self.transition_progress
+                self.background_opacity
+                * (1.0 - self.transition_progress)
             )
 
         # Imagem nova
@@ -229,7 +241,8 @@ class MainPanelBackground(QWidget):
             self._draw_pixmap_cover(
                 painter,
                 self.new_pixmap,
-                self.transition_progress
+                self.background_opacity
+                * self.transition_progress
             )
 
         elif (
@@ -240,7 +253,7 @@ class MainPanelBackground(QWidget):
             self._draw_pixmap_cover(
                 painter,
                 self.pixmap,
-                1.0
+                self.background_opacity
             )
 
         # Escurecimento geral

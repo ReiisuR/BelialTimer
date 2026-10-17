@@ -1,18 +1,18 @@
 from copy import deepcopy
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSignalBlocker, Qt
+from PySide6.QtGui import QPainter, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QScrollArea,
+    QSlider,
     QTabWidget,
     QTableWidget,
     QTableWidgetItem,
@@ -21,8 +21,8 @@ from PySide6.QtWidgets import (
 )
 
 from ..events import REAL_EVENTS
+from .header_widget import BELIAL_ART_OPTIONS
 from ..profile_manager import (
-    SKILL_NAMES,
     clone_default_profile,
     format_mmss,
     parse_mmss,
@@ -38,6 +38,10 @@ class SettingsDialog(QDialog):
         visual_alerts_enabled,
         test_mode,
         profile=None,
+        background_opacity=85,
+        text_opacity=85,
+        opacities_linked=True,
+        header_art="sentada",
         parent=None
     ):
 
@@ -101,6 +105,25 @@ class SettingsDialog(QDialog):
                 border-color: #6b2027;
             }
 
+            QSlider::groove:horizontal {
+                height: 4px;
+                background: #303030;
+                border-radius: 2px;
+            }
+
+            QSlider::sub-page:horizontal {
+                background: #6b2027;
+                border-radius: 2px;
+            }
+
+            QSlider::handle:horizontal {
+                width: 14px;
+                margin: -5px 0;
+                background: #c94450;
+                border: 1px solid #e28b91;
+                border-radius: 7px;
+            }
+
             QTabWidget::pane {
                 border: 1px solid #303030;
             }
@@ -117,12 +140,6 @@ class SettingsDialog(QDialog):
                 border-bottom: 2px solid #6b2027;
             }
 
-            QGroupBox {
-                color: #dddddd;
-                border: 1px solid #303030;
-                margin-top: 8px;
-                padding-top: 8px;
-            }
         """)
 
         self.profile = deepcopy(
@@ -141,17 +158,17 @@ class SettingsDialog(QDialog):
             self._build_general_page(
                 sound_enabled,
                 visual_alerts_enabled,
-                test_mode
+                test_mode,
+                background_opacity,
+                text_opacity,
+                opacities_linked,
+                header_art
             ),
             "Geral"
         )
         self.tabs.addTab(
             self._build_mechanics_page(),
             "Mecânicas"
-        )
-        self.tabs.addTab(
-            self._build_skills_page(),
-            "Skills"
         )
         root.addWidget(self.tabs, 1)
 
@@ -185,7 +202,11 @@ class SettingsDialog(QDialog):
         self,
         sound_enabled,
         visual_alerts_enabled,
-        test_mode
+        test_mode,
+        background_opacity,
+        text_opacity,
+        opacities_linked,
+        header_art
     ):
 
         page = QWidget()
@@ -220,6 +241,83 @@ class SettingsDialog(QDialog):
             0 if test_mode else 1
         )
         form.addRow("Eventos:", self.event_mode_combo)
+
+        self.header_art_combo = QComboBox()
+        self.header_art_combo.addItem("Belial sentada", "sentada")
+        self.header_art_combo.addItem("Belial deitada", "deitada")
+        self.header_art_combo.setCurrentIndex(
+            0 if header_art == "sentada" else 1
+        )
+        self.header_art_preview = QLabel()
+        self.header_art_preview.setFixedSize(240, 140)
+        self.header_art_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.header_art_preview.setStyleSheet(
+            "background: #171717; border: 1px solid #303030; border-radius: 4px;"
+        )
+        self.header_art_combo.currentIndexChanged.connect(
+            self._update_header_art_preview
+        )
+        art_row = QHBoxLayout()
+        art_row.addWidget(self.header_art_combo)
+        art_row.addWidget(self.header_art_preview)
+        art_row.addStretch(1)
+        form.addRow("Imagem do modo normal:", art_row)
+        self._update_header_art_preview()
+
+        self.background_opacity_slider = QSlider(
+            Qt.Orientation.Horizontal
+        )
+        self.background_opacity_slider.setRange(0, 100)
+        self.background_opacity_slider.setValue(background_opacity)
+        self.background_opacity_value_label = QLabel(
+            "{}%".format(self.background_opacity_slider.value())
+        )
+        self.background_opacity_slider.valueChanged.connect(
+            self._on_background_opacity_changed
+        )
+        background_row = QHBoxLayout()
+        background_row.addWidget(self.background_opacity_slider, 1)
+        background_row.addWidget(self.background_opacity_value_label)
+        form.addRow("Opacidade do fundo:", background_row)
+
+        self.text_opacity_slider = QSlider(
+            Qt.Orientation.Horizontal
+        )
+        self.text_opacity_slider.setRange(0, 100)
+        self.text_opacity_slider.setValue(text_opacity)
+        self.text_opacity_value_label = QLabel(
+            "{}%".format(self.text_opacity_slider.value())
+        )
+        self.text_opacity_slider.valueChanged.connect(
+            self._on_text_opacity_changed
+        )
+        text_row = QHBoxLayout()
+        text_row.addWidget(self.text_opacity_slider, 1)
+        text_row.addWidget(self.text_opacity_value_label)
+        form.addRow("Opacidade das letras:", text_row)
+
+        self.link_opacities_button = QPushButton()
+        self.link_opacities_button.setCheckable(True)
+        self.link_opacities_button.setChecked(opacities_linked)
+        self.link_opacities_button.toggled.connect(
+            self._on_opacities_linked_changed
+        )
+        self._update_link_button_text(opacities_linked)
+        if opacities_linked:
+            self._set_text_opacity_value(
+                self.background_opacity_slider.value()
+            )
+        form.addRow(self.link_opacities_button)
+
+        opacity_note = QLabel(
+            "A opacidade do fundo também afeta as imagens; "
+            "os botões mantêm contraste para continuarem legíveis. "
+            "0% = invisível; 100% = totalmente opaco. "
+            "Os ajustes valem nos modos normal e compacto. "
+            "Ctrl+Shift+O restaura fundo e letras a 100%."
+        )
+        opacity_note.setWordWrap(True)
+        form.addRow(opacity_note)
         layout.addLayout(form)
 
         note = QLabel(
@@ -231,33 +329,111 @@ class SettingsDialog(QDialog):
         layout.addStretch(1)
         return page
 
+    def _update_header_art_preview(self):
+
+        art_name = self.header_art_combo.currentData()
+        image_path = BELIAL_ART_OPTIONS[art_name]
+        pixmap = QPixmap(image_path)
+
+        if pixmap.isNull():
+            self.header_art_preview.clear()
+            self.header_art_preview.setText(
+                "Imagem indisponível:\n{}".format(image_path)
+            )
+            return
+
+        if art_name == "deitada":
+            mirrored_pixmap = QPixmap(pixmap.size())
+            mirrored_pixmap.fill(Qt.GlobalColor.transparent)
+            painter = QPainter(mirrored_pixmap)
+            try:
+                painter.translate(pixmap.width(), 0)
+                painter.scale(-1, 1)
+                painter.drawPixmap(0, 0, pixmap)
+            finally:
+                painter.end()
+            pixmap = mirrored_pixmap
+
+        self.header_art_preview.setText("")
+        self.header_art_preview.setPixmap(
+            pixmap.scaled(
+                self.header_art_preview.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+        )
+
+    def _on_background_opacity_changed(self, value):
+
+        self.background_opacity_value_label.setText(
+            "{}%".format(value)
+        )
+        if self.link_opacities_button.isChecked():
+            self._set_text_opacity_value(value)
+
+    def _on_text_opacity_changed(self, value):
+
+        self.text_opacity_value_label.setText(
+            "{}%".format(value)
+        )
+        if self.link_opacities_button.isChecked():
+            blocker = QSignalBlocker(self.background_opacity_slider)
+            self.background_opacity_slider.setValue(value)
+            del blocker
+            self.background_opacity_value_label.setText(
+                "{}%".format(value)
+            )
+
+    def _set_text_opacity_value(self, value):
+
+        blocker = QSignalBlocker(self.text_opacity_slider)
+        self.text_opacity_slider.setValue(value)
+        del blocker
+        self.text_opacity_value_label.setText(
+            "{}%".format(value)
+        )
+
+    def _on_opacities_linked_changed(self, linked):
+
+        if linked:
+            self._set_text_opacity_value(
+                self.background_opacity_slider.value()
+            )
+        self._update_link_button_text(linked)
+
+    def _update_link_button_text(self, linked):
+
+        self.link_opacities_button.setText(
+            "OPACIDADES VINCULADAS"
+            if linked
+            else "VINCULAR OPACIDADES"
+        )
+
     def _build_mechanics_page(self):
 
         page = QWidget()
         layout = QVBoxLayout(page)
         note = QLabel(
-            "Edite os horários de início e a duração visual. "
-            "Uma duração vazia mantém a mecânica ativa até outra regra."
+            "Edite o horário exato de início de cada mecânica. "
+            "Ao chegar nele, a contagem passa para a próxima ocorrência."
         )
         note.setWordWrap(True)
         layout.addWidget(note)
 
         self.mechanics_table = QTableWidget(
             len(self.profile["mechanics"]),
-            4
+            3
         )
         self.mechanics_table.setHorizontalHeaderLabels([
             "N.º",
             "Mecânica",
-            "Início (MM:SS)",
-            "Duração (MM:SS)"
+            "Início (MM:SS)"
         ])
         self.mechanics_table.verticalHeader().hide()
         self.mechanics_table.setAlternatingRowColors(True)
         self.mechanics_table.setColumnWidth(0, 45)
-        self.mechanics_table.setColumnWidth(1, 245)
-        self.mechanics_table.setColumnWidth(2, 135)
-        self.mechanics_table.setColumnWidth(3, 145)
+        self.mechanics_table.setColumnWidth(1, 330)
+        self.mechanics_table.setColumnWidth(2, 150)
 
         for row, mechanic in enumerate(self.profile["mechanics"]):
             number = QTableWidgetItem(
@@ -276,125 +452,9 @@ class SettingsDialog(QDialog):
                 format_mmss(mechanic["start_time"])
             )
             self.mechanics_table.setCellWidget(row, 2, start_input)
-            name_input.textChanged.connect(
-                self._refresh_skill_target_labels
-            )
-            start_input.textChanged.connect(
-                self._refresh_skill_target_labels
-            )
-
-            duration_input = self._time_input(
-                format_mmss(mechanic["duration_seconds"])
-            )
-            duration_input.setPlaceholderText("MM:SS")
-            self.mechanics_table.setCellWidget(row, 3, duration_input)
 
         layout.addWidget(self.mechanics_table)
         return page
-
-    def _build_skills_page(self):
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        content = QWidget()
-        layout = QVBoxLayout(content)
-
-        self.skill_target_tables = {}
-        self.skill_target_labels = {}
-
-        mechanics_by_id = {
-            mechanic["id"]: mechanic
-            for mechanic in self.profile["mechanics"]
-        }
-
-        for skill in self.profile["skills"]:
-            group = QGroupBox(skill["name"])
-            group_layout = QVBoxLayout(group)
-            group_layout.addWidget(QLabel(
-                "Marque cada ocorrência-alvo e informe quantos segundos "
-                "antes deseja receber o lembrete. Deixe desmarcado ou "
-                "sem antecedência para não agendar aviso."
-            ))
-
-            table = QTableWidget(len(REAL_EVENTS), 3)
-            table.setHorizontalHeaderLabels([
-                "Usar",
-                "Mecânica-alvo",
-                "Aviso antes (MM:SS)"
-            ])
-            table.verticalHeader().hide()
-            table.setColumnWidth(0, 55)
-            table.setColumnWidth(1, 380)
-            table.setColumnWidth(2, 160)
-            table.setFixedHeight(250)
-
-            associations = skill["associations"]
-            self.skill_target_labels[skill["id"]] = {}
-            for row, event in enumerate(REAL_EVENTS):
-                checkbox = QCheckBox()
-                checkbox.setChecked(
-                    event["id"] in associations
-                )
-                checkbox_cell = QWidget()
-                checkbox_layout = QHBoxLayout(checkbox_cell)
-                checkbox_layout.setContentsMargins(6, 0, 0, 0)
-                checkbox_layout.addWidget(checkbox)
-                checkbox_layout.setAlignment(
-                    Qt.AlignmentFlag.AlignCenter
-                )
-                table.setCellWidget(row, 0, checkbox_cell)
-
-                mechanic = mechanics_by_id[event["id"]]
-                target_label = QTableWidgetItem(
-                    "{}  {}".format(
-                        format_mmss(mechanic["start_time"]),
-                        mechanic["name"]
-                    )
-                )
-                target_label.setFlags(
-                    target_label.flags()
-                    & ~Qt.ItemFlag.ItemIsEditable
-                )
-                table.setItem(row, 1, target_label)
-                self.skill_target_labels[skill["id"]][event["id"]] = (
-                    target_label
-                )
-
-                lead_time = associations.get(event["id"])
-                lead_input = self._time_input(
-                    format_mmss(lead_time)
-                )
-                lead_input.setPlaceholderText("MM:SS")
-                table.setCellWidget(row, 2, lead_input)
-
-            self.skill_target_tables[skill["id"]] = table
-            group_layout.addWidget(table)
-            layout.addWidget(group)
-
-        self._refresh_skill_target_labels()
-        layout.addStretch(1)
-        scroll.setWidget(content)
-        return scroll
-
-    def _refresh_skill_target_labels(self):
-
-        if not hasattr(self, "skill_target_labels"):
-            return
-
-        for row, event in enumerate(REAL_EVENTS):
-            name_input = self.mechanics_table.cellWidget(row, 1)
-            start_input = self.mechanics_table.cellWidget(row, 2)
-            name = name_input.text().strip() or event["name"]
-            try:
-                start_time = format_mmss(
-                    parse_mmss(start_input.text())
-                )
-            except ValueError:
-                start_time = start_input.text().strip() or "??:??"
-
-            label_text = "{}  {}".format(start_time, name)
-            for labels in self.skill_target_labels.values():
-                labels[event["id"]].setText(label_text)
 
     @staticmethod
     def _time_input(value):
@@ -409,16 +469,10 @@ class SettingsDialog(QDialog):
 
         self.profile = clone_default_profile()
         self.tabs.removeTab(1)
-        self.tabs.removeTab(1)
         self.tabs.insertTab(
             1,
             self._build_mechanics_page(),
             "Mecânicas"
-        )
-        self.tabs.insertTab(
-            2,
-            self._build_skills_page(),
-            "Skills"
         )
         self.tabs.setCurrentIndex(0)
 
@@ -428,14 +482,9 @@ class SettingsDialog(QDialog):
         for row, template in enumerate(REAL_EVENTS):
             name_input = self.mechanics_table.cellWidget(row, 1)
             start_input = self.mechanics_table.cellWidget(row, 2)
-            duration_input = self.mechanics_table.cellWidget(row, 3)
 
             try:
                 start_time = parse_mmss(start_input.text())
-                duration = parse_mmss(
-                    duration_input.text(),
-                    allow_empty=True
-                )
             except ValueError as error:
                 raise ValueError(
                     "Mecânica {:02d}: {}".format(row + 1, error)
@@ -444,47 +493,11 @@ class SettingsDialog(QDialog):
             mechanics.append({
                 "id": template["id"],
                 "name": name_input.text(),
-                "start_time": start_time,
-                "duration_seconds": duration
-            })
-
-        skills = []
-        for skill_id, skill_name in SKILL_NAMES.items():
-            associations = {}
-            table = self.skill_target_tables[skill_id]
-            for row, event in enumerate(REAL_EVENTS):
-                checkbox_cell = table.cellWidget(row, 0)
-                checkbox = checkbox_cell.findChild(QCheckBox)
-
-                if not checkbox.isChecked():
-                    continue
-
-                lead_input = table.cellWidget(row, 2)
-                try:
-                    lead_time = parse_mmss(
-                        lead_input.text(),
-                        allow_empty=True
-                    )
-                except ValueError as error:
-                    raise ValueError(
-                        "{} → {}: {}".format(
-                            skill_name,
-                            event["name"],
-                            error
-                        )
-                    ) from error
-
-                associations[event["id"]] = lead_time
-
-            skills.append({
-                "id": skill_id,
-                "name": skill_name,
-                "associations": associations
+                "start_time": start_time
             })
 
         profile, error = validate_profile({
-            "mechanics": mechanics,
-            "skills": skills
+            "mechanics": mechanics
         })
 
         if error:

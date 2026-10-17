@@ -114,21 +114,44 @@ class EventSequenceTests(unittest.TestCase):
         self.assertIsNone(state.next_event)
         self.assertEqual(state.remaining, 0)
 
-    def test_real_profile_starts_immediately_and_waits_between_events(self):
+    def test_real_profile_counts_each_exact_start_time(self):
         events = build_mechanics(DEFAULT_PROFILE)
-        state = get_event_state(events, 0)
+        state = get_event_state(
+            events,
+            0,
+            show_first_during_countdown=True
+        )
 
         self.assertEqual(state.current_index, 0)
         self.assertEqual(state.current_event["id"], "real-buffs-005")
-        self.assertEqual(state.current_event["name"], "REMOÇÃO DOS BUFFS")
+        self.assertEqual(state.next_index, 1)
         self.assertEqual(state.next_event["id"], "real-laser-020")
-        self.assertEqual(state.remaining, 20)
+        self.assertEqual(state.remaining, 5)
+        self.assertEqual(state.last_started_index, -1)
 
-        during_wait = get_event_state(events, 5)
-        self.assertIsNone(during_wait.current_event)
-        self.assertEqual(during_wait.last_started_index, 0)
+        at_five = get_event_state(
+            events,
+            5,
+            show_first_during_countdown=True
+        )
+        self.assertEqual(at_five.current_index, 0)
+        self.assertEqual(at_five.current_event["id"], "real-buffs-005")
+        self.assertEqual(at_five.next_index, 1)
+        self.assertEqual(at_five.next_event["id"], "real-laser-020")
+        self.assertEqual(at_five.remaining, 15)
+
+        at_buffs = get_event_state(events, 5)
+        self.assertEqual(at_buffs.current_index, 0)
+        self.assertEqual(at_buffs.current_event["id"], "real-buffs-005")
+        self.assertEqual(at_buffs.current_event["name"], "REMOÇÃO DOS BUFFS")
+        self.assertEqual(at_buffs.next_index, 1)
+        self.assertEqual(at_buffs.next_event["id"], "real-laser-020")
+        self.assertEqual(at_buffs.remaining, 15)
+
+        during_wait = get_event_state(events, 6)
+        self.assertEqual(during_wait.current_event["id"], "real-buffs-005")
         self.assertEqual(during_wait.next_event["id"], "real-laser-020")
-        self.assertEqual(during_wait.remaining, 15)
+        self.assertEqual(during_wait.remaining, 14)
 
         at_laser = get_event_state(events, 20)
         self.assertEqual(at_laser.current_event["id"], "real-laser-020")

@@ -3,7 +3,7 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtGui import QImage
+from PySide6.QtGui import QColor, QImage, QPixmap
 from PySide6.QtWidgets import QApplication
 
 from app.widgets.mechanic_panel import MainPanelBackground
@@ -55,6 +55,40 @@ class MainPanelBackgroundTests(unittest.TestCase):
 
         self.assertIsNone(self.panel.image_path)
         self.assertTrue(self.panel.pixmap.isNull())
+
+    def test_background_opacity_applies_to_images(self):
+        pixmap = QPixmap(20, 20)
+        pixmap.fill(QColor("#ffffff"))
+        self.panel.pixmap = pixmap
+
+        self.panel.set_background_opacity(0)
+        transparent_image = QImage(
+            self.panel.size(),
+            QImage.Format.Format_ARGB32
+        )
+        transparent_image.fill(0)
+        self.panel.render(transparent_image)
+        self.assertEqual(
+            transparent_image.pixelColor(160, 100).alpha(),
+            0
+        )
+
+        self.panel.set_background_opacity(1)
+        opaque_image = QImage(
+            self.panel.size(),
+            QImage.Format.Format_ARGB32
+        )
+        opaque_image.fill(0)
+        self.panel.render(opaque_image)
+
+        self.assertGreater(
+            opaque_image.pixelColor(160, 100).alpha(),
+            0
+        )
+        self.assertGreater(
+            opaque_image.pixelColor(160, 100).red(),
+            transparent_image.pixelColor(160, 100).red()
+        )
 
 
 if __name__ == "__main__":
