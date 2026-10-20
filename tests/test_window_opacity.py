@@ -237,6 +237,9 @@ class WindowOpacityTests(unittest.TestCase):
             self.window.compact_widget.character_art.background_opacity,
             0.42
         )
+        panel_style = self.window.compact_widget.content_panel.styleSheet()
+        self.assertIn("background: rgba(16, 16, 16, 0.42)", panel_style)
+        self.assertIn("border: 1px solid rgba(135, 64, 74, 0.42)", panel_style)
 
     def test_compact_mode_opens_at_normal_window_position(self):
         self.window.move(240, 180)
@@ -257,6 +260,17 @@ class WindowOpacityTests(unittest.TestCase):
         self.application.processEvents()
         self.assertTrue(self.window.isVisible())
         self.assertEqual(self.window.pos(), QPoint(240, 180))
+
+    def test_startup_shows_only_saved_compact_mode(self):
+        self.window.close()
+        self.window.config["compact_mode"] = True
+        self.window.compact = True
+
+        self.window.show_startup_mode()
+        self.application.processEvents()
+
+        self.assertFalse(self.window.isVisible())
+        self.assertTrue(self.window.compact_widget.isVisible())
 
     def test_compact_background_renders_transparent(self):
         self.window.compact_widget.set_background_opacity(0)

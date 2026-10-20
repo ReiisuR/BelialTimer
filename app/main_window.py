@@ -71,7 +71,7 @@ class MainWindow(QWidget):
             self.config_path
         )
 
-        self.compact = False
+        self.compact = self.config["compact_mode"]
 
         self.timer_running = False
 
@@ -200,8 +200,17 @@ class MainWindow(QWidget):
                 config_warning
             )
 
-        if self.config["compact_mode"]:
-            self.toggle_compact_mode()
+        if self.compact:
+            self._restore_window_position("compact", self.compact_widget)
+
+    def show_startup_mode(self):
+
+        if self.compact:
+            self.hide()
+            self.compact_widget.show()
+            self.compact_widget.raise_()
+        else:
+            self.show()
 
     # =====================================================
     # BUILD UI

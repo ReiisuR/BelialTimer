@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (
     QWidget
 )
 
-from ..opacity import apply_background_opacity
 from .header_widget import BELIAL_ELBOW_ART, HeaderArtWidget
 
 
@@ -59,8 +58,16 @@ class CompactWindow(QWidget):
 
     def set_background_opacity(self, opacity):
 
-        apply_background_opacity(self.content_panel, opacity)
-        self.character_art.set_background_opacity(opacity / 100)
+        opacity = max(0, min(100, int(opacity)))
+        alpha = opacity / 100
+        self.content_panel.setStyleSheet("""
+            QWidget#compactPanel {{
+                background: rgba(16, 16, 16, {alpha:.2f});
+                border: 1px solid rgba(135, 64, 74, {alpha:.2f});
+                border-radius: 8px;
+            }}
+        """.format(alpha=alpha))
+        self.character_art.set_background_opacity(alpha)
 
     def _build_ui(
         self,
@@ -220,13 +227,7 @@ class CompactWindow(QWidget):
         divider.setFixedHeight(1)
         divider.setStyleSheet("background: #4a252b; border: none;")
         layout.insertWidget(1, divider)
-        self.content_panel.setStyleSheet("""
-            QWidget#compactPanel {
-                background: #101010;
-                border: 1px solid #87404a;
-                border-radius: 8px;
-            }
-        """)
+        self.set_background_opacity(100)
         self.character_art.raise_()
 
     def eventFilter(

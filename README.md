@@ -35,9 +35,15 @@ Na sequência real, o timer começa contando até a **Remoção dos Buffs**, que
 
 O botão **RESETAR** para a contagem e deixa o timer pronto para começar de novo. O atalho `Ctrl+Shift+O` restaura a opacidade do fundo e das letras para 100%.
 
-## Como iniciar
+## Baixar para Windows
 
-O programa ainda está em desenvolvimento e, por enquanto, precisa do Python instalado no Windows.
+Quando houver uma versão publicada, baixe `BelialTimer-windows-x64.zip` na página **Releases** do GitHub. Extraia o ZIP inteiro e abra `BelialTimer.exe` dentro da pasta `BelialTimer`. Mantenha os arquivos juntos; o executável precisa deles para abrir.
+
+Como o programa ainda não tem assinatura digital, o Windows pode mostrar um aviso de reputação. Baixe o ZIP somente da página oficial de Releases do projeto.
+
+## Executar pelo código
+
+Para testar o código-fonte, é necessário ter o Python instalado no Windows.
 
 1. Instale o **Python 3.12**, caso ainda não tenha.
 2. Baixe este projeto pelo botão **Code → Download ZIP** no GitHub e extraia os arquivos.
@@ -54,6 +60,17 @@ O programa ainda está em desenvolvimento e, por enquanto, precisa do Python ins
    py -3.12 main.py
    ```
 
-## Ainda em desenvolvimento
+O arquivo `requirements.txt` instala apenas o necessário para usar o programa. As ferramentas para gerar uma versão distribuível ficam separadas em `requirements-build.txt`.
 
-Este projeto ainda não tem instalador ou versão pronta para abrir sem configurar o Python. Sugestões para deixar o timer melhor são bem-vindas!
+## Preparar uma versão para download
+
+O pacote é uma pasta compactada (ZIP); ainda não há instalador. Para preparar o pacote a partir do código-fonte, instale as ferramentas de build e execute:
+
+```powershell
+py -3.12 -m pip install -r requirements-build.txt
+.\build_release.ps1
+```
+
+O ZIP será criado em `dist/BelialTimer-windows-x64.zip`. Ao enviar uma tag `v*` para o GitHub, uma versão de teste é compilada no Windows e publicada automaticamente na página **Releases**.
+
+Sugestões para deixar o timer melhor são bem-vindas!

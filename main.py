@@ -11,7 +11,7 @@ def main():
     application.setApplicationName("Belial Timer")
 
     window = MainWindow()
-    window.show()
+    window.show_startup_mode()
 
     return application.exec()
 
