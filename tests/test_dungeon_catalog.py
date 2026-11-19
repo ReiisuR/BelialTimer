@@ -5,9 +5,12 @@ from app.design_system.theme_manager import get_dungeon_theme
 
 
 class DungeonCatalogTests(unittest.TestCase):
-    def test_seven_entries_including_existing_belial(self):
-        self.assertEqual(len(DUNGEONS), 7)
-        self.assertEqual(len({item["id"] for item in DUNGEONS}), 7)
+    def test_six_unique_dungeons_with_belial_inside_pesadelo(self):
+        self.assertEqual(len(DUNGEONS), 6)
+        self.assertEqual(len({item["id"] for item in DUNGEONS}), 6)
+        self.assertEqual(len(filter_dungeons("Belial")), 1)
+        self.assertEqual(filter_dungeons("Belial")[0]["id"], "pesadelo")
+        self.assertEqual(filter_dungeons("Belial")[0]["type"], "timer")
 
     def test_access_information_is_correct(self):
         by_id = {item["id"]: item for item in DUNGEONS}
