@@ -20,7 +20,7 @@ Um timer para ajudar a acompanhar as mecânicas da luta contra Belial, com conta
 
 ## Central de DGs
 
-O aplicativo inicia no **painel de DGs**. Selecione **Belial > Abrir Timer** para abrir a janela compacta com a contagem e os alertas. O painel é a base para futuras DGs com guias de habilidades e dicas, mesmo quando não precisarem de timer.
+O aplicativo inicia no **painel de DGs**. Selecione **Belial > Abrir Timer** para abrir a janela compacta com a contagem e os alertas. O painel apresenta cartões temáticos para Belial, Imperador Digimon, Base do Imperador, Pesadelo, Destruição e Regeneração, DarkWeb e Terra do Nunca. Há pesquisa por nome, sigla ou NPC e filtros por dificuldade. O botão das DGs sem timer exibe informações de acesso; os guias de habilidades ainda serão cadastrados.
 
 Nesta primeira etapa, a janela normal antiga ainda existe como visualização secundária do Belial; sua substituição completa pelo painel será feita em uma etapa posterior.
 
