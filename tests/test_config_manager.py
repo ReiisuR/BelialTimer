@@ -29,6 +29,13 @@ class ConfigManagerTests(unittest.TestCase):
 
         self.assertEqual(config, DEFAULT_CONFIG)
         self.assertFalse(config["test_mode"])
+        self.assertTrue(config["compact_mode"])
+        self.assertIsNone(warning)
+
+    def test_explicit_normal_mode_preference_is_preserved(self):
+        save_config({"compact_mode": False}, self.config_path)
+        config, warning = load_config(self.config_path)
+        self.assertFalse(config["compact_mode"])
         self.assertIsNone(warning)
 
     def test_saved_preferences_are_loaded(self):
