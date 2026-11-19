@@ -18,6 +18,12 @@ Um timer para ajudar a acompanhar as mecânicas da luta contra Belial, com conta
 
 ---
 
+## Central de DGs
+
+O aplicativo inicia no **painel de DGs**. Selecione **Belial > Abrir Timer** para abrir a janela compacta com a contagem e os alertas. O painel é a base para futuras DGs com guias de habilidades e dicas, mesmo quando não precisarem de timer.
+
+Nesta primeira etapa, a janela normal antiga ainda existe como visualização secundária do Belial; sua substituição completa pelo painel será feita em uma etapa posterior.
+
 ## Como ele ajuda durante a luta
 
 Depois de apertar **INICIAR**, o timer mostra qual mecânica está acontecendo, quanto falta para a próxima e o que vem depois. Você pode deixar os avisos sonoros ligados para receber um lembrete sem precisar ficar olhando para a janela.
