@@ -72,6 +72,8 @@ class MainWindow(QWidget):
         )
 
         self.compact = self.config["compact_mode"]
+        # Definido pelo controlador da Central de DGs, quando disponivel.
+        self.dashboard_return_callback = None
 
         self.timer_running = False
 
@@ -1904,6 +1906,17 @@ class MainWindow(QWidget):
             self._store_window_position("normal", self)
         self._position_save_timer.stop()
         self._save_user_config()
+
+        # Na Central de DGs, fechar o timer volta ao painel principal.
+        # A janela legada continua encerrando o aplicativo quando usada sozinha.
+        if self.dashboard_return_callback is not None:
+            self.reset_timer()
+            self.dashboard_return_callback()
+            self.compact_widget.hide()
+            self.hide()
+            if self.lying_art_overlay is not None:
+                self.lying_art_overlay.hide()
+            return
 
         self.timer_engine.stop()
 
