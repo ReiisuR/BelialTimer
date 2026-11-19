@@ -264,6 +264,22 @@ class WindowOpacityTests(unittest.TestCase):
         self.assertTrue(self.window.isVisible())
         self.assertEqual(self.window.pos(), QPoint(240, 180))
 
+    def test_close_returns_to_dashboard_when_callback_is_configured(self):
+        returned = []
+        self.window.dashboard_return_callback = lambda: returned.append(True)
+        self.window.compact = True
+        self.window.compact_widget.show()
+        self.application.processEvents()
+
+        with patch.object(self.application, "quit") as quit_app:
+            self.window.close_app()
+            quit_app.assert_not_called()
+
+        self.assertEqual(returned, [True])
+        self.assertFalse(self.window.compact_widget.isVisible())
+        self.assertFalse(self.window.isVisible())
+        self.assertFalse(self.window.timer_running)
+
     def test_startup_shows_only_saved_compact_mode(self):
         self.window.close()
         self.window.config["compact_mode"] = True
