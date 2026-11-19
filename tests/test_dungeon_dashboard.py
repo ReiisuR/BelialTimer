@@ -20,6 +20,19 @@ class DungeonDashboardTests(unittest.TestCase):
         self.assertEqual(calls, [True])
         dashboard.close()
 
+    def test_search_filters_cards_by_npc(self):
+        dashboard = DungeonDashboard()
+        dashboard.search_input.setText("Izzy")
+        self.assertEqual(len(dashboard.cards), 2)
+        self.assertEqual({card.dungeon["id"] for card in dashboard.cards}, {"darkweb", "never"})
+        dashboard.close()
+
+    def test_difficulty_filter_shows_only_matching_dungeons(self):
+        dashboard = DungeonDashboard()
+        dashboard.set_difficulty("Difícil")
+        self.assertEqual([card.dungeon["id"] for card in dashboard.cards], ["pesadelo"])
+        dashboard.close()
+
     def test_dashboard_is_not_always_on_top(self):
         dashboard = DungeonDashboard()
         self.assertEqual(dashboard.windowTitle(), "BelialTimer | Central de DGs")
