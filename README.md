@@ -20,7 +20,7 @@ Um timer para ajudar a acompanhar as mecânicas da luta contra Belial, com conta
 
 ## Central de DGs
 
-O aplicativo inicia no **painel de DGs**. Selecione **Belial > Abrir Timer** para abrir a janela compacta com a contagem e os alertas. O painel apresenta cartões temáticos para Belial, Imperador Digimon, Base do Imperador, Pesadelo, Destruição e Regeneração, DarkWeb e Terra do Nunca. Há pesquisa por nome, sigla ou NPC e filtros por dificuldade. O botão das DGs sem timer exibe informações de acesso; os guias de habilidades ainda serão cadastrados.
+O aplicativo inicia no **painel de DGs**. Selecione **Pesadelo > Abrir Timer** para abrir a janela compacta com a contagem e os alertas. O painel apresenta seis cartões temáticos para Imperador Digimon, Base do Imperador, Pesadelo (Belial), Destruição e Regeneração, DarkWeb e Terra do Nunca. Há pesquisa por nome, sigla ou NPC e filtros por dificuldade. O botão das DGs sem timer exibe informações de acesso; os guias de habilidades ainda serão cadastrados.
 
 Nesta primeira etapa, a janela normal antiga ainda existe como visualização secundária do Belial; sua substituição completa pelo painel será feita em uma etapa posterior.
 
@@ -32,7 +32,7 @@ Na sequência real, o timer começa contando até a **Remoção dos Buffs**, que
 
 ## Do seu jeito
 
-- **Janela compacta por padrão:** a visualização compacta é a principal nas novas instalações. Ela pode ser arrastada; dê dois cliques nela para abrir a janela normal. O aplicativo lembra o último modo escolhido.
+- **Janela compacta por padrão:** a visualização compacta é a principal nas novas instalações. Ela pode ser arrastada; dê dois cliques nela para voltar à Central de DGs. O aplicativo lembra o último modo escolhido.
 - **Imagem da Belial:** escolha entre as artes sentada e deitada e veja uma prévia nas configurações.
 - **Avisos:** ligue ou desligue os bipes e os alertas visuais.
 - **Transparência:** ajuste o fundo e as letras. Você pode mudar cada um separadamente ou vinculá-los.
