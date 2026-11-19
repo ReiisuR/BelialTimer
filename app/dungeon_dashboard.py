@@ -168,6 +168,7 @@ class DungeonDashboard(QWidget):
             if item.widget():
                 item.widget().deleteLater()
         self.cards = []
+        self.open_belial_button = None
         matches = filter_dungeons(
             self.search_input.text(), self.active_difficulty
         )
@@ -176,6 +177,8 @@ class DungeonDashboard(QWidget):
             card.selected.connect(self.open_dungeon)
             self.grid.addWidget(card, index // 2, index % 2)
             self.cards.append(card)
+            if dungeon["id"] == "belial":
+                self.open_belial_button = card.action_button
         if not matches:
             empty = QLabel("Nenhuma DG encontrada para os filtros selecionados.")
             empty.setObjectName("subheading")
