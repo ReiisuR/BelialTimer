@@ -26,7 +26,7 @@ Na sequência real, o timer começa contando até a **Remoção dos Buffs**, que
 
 ## Do seu jeito
 
-- **Janela normal ou compacta:** escolha a visualização que fica melhor na sua tela. A janela compacta pode ser arrastada; dê dois cliques nela para voltar à janela normal.
+- **Janela compacta por padrão:** a visualização compacta é a principal nas novas instalações. Ela pode ser arrastada; dê dois cliques nela para abrir a janela normal. O aplicativo lembra o último modo escolhido.
 - **Imagem da Belial:** escolha entre as artes sentada e deitada e veja uma prévia nas configurações.
 - **Avisos:** ligue ou desligue os bipes e os alertas visuais.
 - **Transparência:** ajuste o fundo e as letras. Você pode mudar cada um separadamente ou vinculá-los.
