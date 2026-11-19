@@ -14,7 +14,7 @@ from .profile_manager import (
 DEFAULT_CONFIG = {
     "sound_enabled": True,
     "visual_alerts_enabled": True,
-    "compact_mode": False,
+    "compact_mode": True,
     "test_mode": False,
     "background_opacity": 85,
     "text_opacity": 85,
