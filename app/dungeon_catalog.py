@@ -2,12 +2,6 @@
 
 DUNGEONS = (
     {
-        "id": "belial", "name": "Belial", "acronym": "",
-        "npc": None, "location": None,
-        "difficulties": (), "type": "timer", "theme": "belial",
-        "description": "Timer de mecânicas com alertas.",
-    },
-    {
         "id": "imperador", "name": "Imperador Digimon", "acronym": "MDG",
         "npc": "Veemon", "location": "D-Terminal",
         "difficulties": ("Normal", "Fácil"), "type": "guide", "theme": "imperador",
@@ -22,8 +16,8 @@ DUNGEONS = (
     {
         "id": "pesadelo", "name": "Pesadelo", "acronym": "",
         "npc": "Veemon", "location": "D-Terminal",
-        "difficulties": ("Normal", "Difícil", "Fácil"), "type": "guide",
-        "theme": "pesadelo", "description": "Guia de mecânicas em preparação.",
+        "difficulties": ("Normal", "Difícil", "Fácil"), "type": "timer",
+        "theme": "belial", "description": "Timer de mecânicas existente (Belial).",
     },
     {
         "id": "sdg", "name": "Destruição e Regeneração", "acronym": "SDG",
@@ -50,7 +44,8 @@ def filter_dungeons(query="", difficulty="Todas"):
     search = query.strip().casefold()
     results = []
     for dungeon in DUNGEONS:
-        fields = (dungeon["name"], dungeon["acronym"], dungeon["npc"] or "")
+        fields = (dungeon["name"], dungeon["acronym"], dungeon["npc"] or "",
+                  "Belial" if dungeon["id"] == "pesadelo" else "")
         if search and not any(search in field.casefold() for field in fields):
             continue
         if difficulty != "Todas" and difficulty not in dungeon["difficulties"]:
