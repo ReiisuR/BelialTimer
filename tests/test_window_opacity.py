@@ -22,6 +22,9 @@ class WindowOpacityTests(unittest.TestCase):
 
     def setUp(self):
         config = copy.deepcopy(DEFAULT_CONFIG)
+        # Estes testes exercitam explicitamente a janela normal legada.
+        # O padrao do aplicativo agora e compacto; nao depender do default.
+        config["compact_mode"] = False
         config["background_opacity"] = 65
         config["text_opacity"] = 92
         config["opacities_linked"] = False
