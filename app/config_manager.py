@@ -20,6 +20,7 @@ DEFAULT_CONFIG = {
     "text_opacity": 85,
     "opacities_linked": True,
     "header_art": "sentada",
+    "compact_art": "cotovelo",
     "window_positions": {
         "normal": None,
         "compact": None
@@ -116,6 +117,12 @@ def load_config(path=None):
             config["header_art"] = stored_config["header_art"]
         else:
             invalid_keys.append("header_art")
+
+    if "compact_art" in stored_config:
+        if stored_config["compact_art"] in ("sentada", "deitada", "cotovelo"):
+            config["compact_art"] = stored_config["compact_art"]
+        else:
+            invalid_keys.append("compact_art")
 
     if "window_positions" in stored_config:
         stored_positions = stored_config["window_positions"]
