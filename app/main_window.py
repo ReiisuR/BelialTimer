@@ -177,6 +177,7 @@ class MainWindow(QWidget):
         self._build_ui()
         self.lying_art_overlay = None
         self.apply_header_art(self.config["header_art"])
+        self.compact_widget.set_character_art(self.config["compact_art"])
         self._text_opacity_effects = []
         self._background_style_widgets = []
         self.apply_display_opacities(
@@ -1380,6 +1381,7 @@ class MainWindow(QWidget):
             text_opacity=self.config["text_opacity"],
             opacities_linked=self.config["opacities_linked"],
             header_art=self.config["header_art"],
+            compact_art=self.config["compact_art"],
             parent=self
         )
 
@@ -1391,6 +1393,8 @@ class MainWindow(QWidget):
         )
         self.config["header_art"] = dialog.header_art_combo.currentData()
         self.apply_header_art(self.config["header_art"])
+        self.config["compact_art"] = dialog.compact_art_combo.currentData()
+        self.compact_widget.set_character_art(self.config["compact_art"])
 
         self.visual_alerts_enabled = (
             dialog.visual_alerts_checkbox.isChecked()
@@ -1625,6 +1629,7 @@ class MainWindow(QWidget):
             "text_opacity": self.config["text_opacity"],
             "opacities_linked": self.config["opacities_linked"],
             "header_art": self.config["header_art"],
+            "compact_art": self.config["compact_art"],
             "window_positions": self.config["window_positions"],
             "custom_profile": self.custom_profile
         })
