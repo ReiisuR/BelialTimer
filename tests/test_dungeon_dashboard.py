@@ -20,6 +20,14 @@ class DungeonDashboardTests(unittest.TestCase):
         self.assertEqual(calls, [True])
         dashboard.close()
 
+    def test_settings_navigation_emits_signal(self):
+        dashboard = DungeonDashboard()
+        calls = []
+        dashboard.settings_requested.connect(lambda: calls.append(True))
+        dashboard.settings_button.click()
+        self.assertEqual(calls, [True])
+        dashboard.close()
+
     def test_search_filters_cards_by_npc(self):
         dashboard = DungeonDashboard()
         dashboard.search_input.setText("Izzy")
