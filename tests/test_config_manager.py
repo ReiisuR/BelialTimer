@@ -32,6 +32,13 @@ class ConfigManagerTests(unittest.TestCase):
         self.assertTrue(config["compact_mode"])
         self.assertIsNone(warning)
 
+    def test_compact_art_preference_is_persisted(self):
+        for art in ("cotovelo", "sentada", "deitada"):
+            save_config({"compact_art": art}, self.config_path)
+            config, warning = load_config(self.config_path)
+            self.assertEqual(config["compact_art"], art)
+            self.assertIsNone(warning)
+
     def test_explicit_normal_mode_preference_is_preserved(self):
         save_config({"compact_mode": False}, self.config_path)
         config, warning = load_config(self.config_path)
