@@ -81,6 +81,7 @@ class DungeonCard(QFrame):
 
 class DungeonDashboard(QWidget):
     belial_requested = Signal()
+    settings_requested = Signal()
 
     def __init__(self):
         super().__init__()
@@ -107,6 +108,11 @@ class DungeonDashboard(QWidget):
         nav = QLabel("◆  DGs")
         nav.setStyleSheet("color: #F4EDF1; font-weight: bold; padding: 12px 4px;")
         side_layout.addWidget(nav)
+        self.settings_button = QPushButton("⚙  CONFIGURAÇÕES")
+        self.settings_button.setObjectName("settingsNavigation")
+        self.settings_button.setToolTip("Configurar timer, alertas e mecânicas.")
+        self.settings_button.clicked.connect(self.settings_requested.emit)
+        side_layout.addWidget(self.settings_button)
         side_layout.addStretch()
         root.addWidget(sidebar)
 
