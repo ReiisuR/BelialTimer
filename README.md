@@ -47,6 +47,10 @@ Quando houver uma versão publicada, baixe `BelialTimer-windows-x64.zip` na pág
 
 Como o programa ainda não tem assinatura digital, o Windows pode mostrar um aviso de reputação. Baixe o ZIP somente da página oficial de Releases do projeto.
 
+## Desenvolvimento com Codex local
+
+Para desenvolver sem baixar o ZIP a cada atualização, clone o repositório uma única vez com `git clone https://github.com/ReiisuR/BelialTimer.git` e abra a pasta no VS Code. Consulte o [Roadmap](ROADMAP.md), as [instruções para agentes de código](AGENTS.md) e o [guia de desenvolvimento local](CONTRIBUTING.md). Esses arquivos registram as decisões do projeto, as pendências e o fluxo de testes.
+
 ## Executar pelo código
 
 Para testar o código-fonte, é necessário ter o Python instalado no Windows.
