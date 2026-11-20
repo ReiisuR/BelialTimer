@@ -66,6 +66,20 @@ class CompactWindowTests(unittest.TestCase):
             self.window.content_panel.rect().center().x()
         )
 
+    def test_character_art_can_be_changed_in_compact_mode(self):
+        for art, filename in (
+            ("sentada", "belial_sentada.png"),
+            ("deitada", "belial_deitada.png"),
+            ("cotovelo", "belial_cotovelo.png"),
+        ):
+            self.window.set_character_art(art)
+            self.assertEqual(
+                os.path.basename(self.window.character_art.image_path), filename
+            )
+        self.assertFalse(self.window.character_art.mirror_horizontally)
+        self.window.set_character_art("deitada")
+        self.assertTrue(self.window.character_art.mirror_horizontally)
+
     def test_controls_call_their_callbacks(self):
         self.window.start_button.click()
         self.window.restore_button.click()
