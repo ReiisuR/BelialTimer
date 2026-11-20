@@ -20,7 +20,7 @@ def main():
         dashboard.raise_()
         dashboard.activateWindow()
 
-    def open_belial():
+    def ensure_timer():
         nonlocal active_timer
         if active_timer is None:
             active_timer = MainWindow()
@@ -34,13 +34,23 @@ def main():
             active_timer.compact_widget.close_button.setToolTip(
                 "Fechar o timer e voltar à Central de DGs."
             )
+        return active_timer
+
+    def open_settings():
+        # Reutiliza o mesmo editor e persistencia de configuracoes do timer.
+        # O timer pode ser inicializado sem exibir sua janela.
+        ensure_timer().open_settings()
+
+    def open_belial():
+        timer = ensure_timer()
         # O painel é o ponto de entrada; o timer abre na interface compacta.
-        if not active_timer.compact:
-            active_timer.compact = True
-        active_timer.show_startup_mode()
+        if not timer.compact:
+            timer.compact = True
+        timer.show_startup_mode()
         dashboard.hide()
 
     dashboard.belial_requested.connect(open_belial)
+    dashboard.settings_requested.connect(open_settings)
     dashboard.show()
 
     return application.exec()
