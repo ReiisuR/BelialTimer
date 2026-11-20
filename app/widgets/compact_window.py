@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QWidget
 )
 
-from .header_widget import BELIAL_ELBOW_ART, HeaderArtWidget
+from .header_widget import BELIAL_ELBOW_ART, BELIAL_ART_OPTIONS, HeaderArtWidget
 
 
 class CompactWindow(QWidget):
@@ -39,7 +39,7 @@ class CompactWindow(QWidget):
         self.setFixedSize(380, 330)
 
         self.setToolTip(
-            "Dê duplo clique para voltar à janela principal."
+            "Dê duplo clique para voltar à Central de DGs."
         )
 
         self._drag_position = None
@@ -55,6 +55,13 @@ class CompactWindow(QWidget):
             child.installEventFilter(self)
 
         self.hide()
+
+    def set_character_art(self, art_name):
+        paths = {**BELIAL_ART_OPTIONS, "cotovelo": BELIAL_ELBOW_ART}
+        if art_name not in paths:
+            raise ValueError("Arte compacta desconhecida: {}".format(art_name))
+        self.character_art.set_image_path(paths[art_name])
+        self.character_art.set_mirrored_horizontally(art_name == "deitada")
 
     def set_background_opacity(self, opacity):
 
