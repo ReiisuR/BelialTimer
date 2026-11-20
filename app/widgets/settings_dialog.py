@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..events import REAL_EVENTS
-from .header_widget import BELIAL_ART_OPTIONS
+from .header_widget import BELIAL_ART_OPTIONS, BELIAL_ELBOW_ART
 from ..profile_manager import (
     clone_default_profile,
     format_mmss,
@@ -264,7 +264,7 @@ class SettingsDialog(QDialog):
         art_row.addWidget(self.header_art_combo)
         art_row.addWidget(self.header_art_preview)
         art_row.addStretch(1)
-        form.addRow("Imagem do modo normal:", art_row)
+        form.addRow("Imagem da Belial (modo normal):", art_row)
         self._update_header_art_preview()
 
         self.compact_art_combo = QComboBox()
@@ -274,7 +274,21 @@ class SettingsDialog(QDialog):
         self.compact_art_combo.setCurrentIndex(
             max(0, self.compact_art_combo.findData(compact_art))
         )
-        form.addRow("Imagem do timer compacto:", self.compact_art_combo)
+        self.compact_art_preview = QLabel()
+        self.compact_art_preview.setFixedSize(150, 105)
+        self.compact_art_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.compact_art_preview.setStyleSheet(
+            "background: #171717; border: 1px solid #303030; border-radius: 4px;"
+        )
+        compact_row = QHBoxLayout()
+        compact_row.addWidget(self.compact_art_combo)
+        compact_row.addWidget(self.compact_art_preview)
+        compact_row.addStretch(1)
+        form.addRow("Imagem do timer compacto:", compact_row)
+        self.compact_art_combo.currentIndexChanged.connect(
+            self._update_compact_art_preview
+        )
+        self._update_compact_art_preview()
 
         self.background_opacity_slider = QSlider(
             Qt.Orientation.Horizontal
@@ -340,6 +354,21 @@ class SettingsDialog(QDialog):
         layout.addWidget(note)
         layout.addStretch(1)
         return page
+
+    def _update_compact_art_preview(self):
+        paths = {**BELIAL_ART_OPTIONS, "cotovelo": BELIAL_ELBOW_ART}
+        image_path = paths[self.compact_art_combo.currentData()]
+        pixmap = QPixmap(image_path)
+        if pixmap.isNull():
+            self.compact_art_preview.setText("Imagem indisponível")
+            return
+        self.compact_art_preview.setPixmap(
+            pixmap.scaled(
+                self.compact_art_preview.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+        )
 
     def _update_header_art_preview(self):
 
