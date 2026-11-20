@@ -42,6 +42,7 @@ class SettingsDialog(QDialog):
         text_opacity=85,
         opacities_linked=True,
         header_art="sentada",
+        compact_art="cotovelo",
         parent=None
     ):
 
@@ -162,13 +163,14 @@ class SettingsDialog(QDialog):
                 background_opacity,
                 text_opacity,
                 opacities_linked,
-                header_art
+                header_art,
+                compact_art
             ),
             "Geral"
         )
         self.tabs.addTab(
             self._build_mechanics_page(),
-            "Mecânicas"
+            "Belial"
         )
         root.addWidget(self.tabs, 1)
 
@@ -206,7 +208,8 @@ class SettingsDialog(QDialog):
         background_opacity,
         text_opacity,
         opacities_linked,
-        header_art
+        header_art,
+        compact_art
     ):
 
         page = QWidget()
@@ -240,7 +243,7 @@ class SettingsDialog(QDialog):
         self.event_mode_combo.setCurrentIndex(
             0 if test_mode else 1
         )
-        form.addRow("Eventos:", self.event_mode_combo)
+        form.addRow("Eventos do Belial:", self.event_mode_combo)
 
         self.header_art_combo = QComboBox()
         self.header_art_combo.addItem("Belial sentada", "sentada")
@@ -263,6 +266,15 @@ class SettingsDialog(QDialog):
         art_row.addStretch(1)
         form.addRow("Imagem do modo normal:", art_row)
         self._update_header_art_preview()
+
+        self.compact_art_combo = QComboBox()
+        self.compact_art_combo.addItem("Belial fixa (cotovelo)", "cotovelo")
+        self.compact_art_combo.addItem("Belial sentada", "sentada")
+        self.compact_art_combo.addItem("Belial deitada", "deitada")
+        self.compact_art_combo.setCurrentIndex(
+            max(0, self.compact_art_combo.findData(compact_art))
+        )
+        form.addRow("Imagem do timer compacto:", self.compact_art_combo)
 
         self.background_opacity_slider = QSlider(
             Qt.Orientation.Horizontal
